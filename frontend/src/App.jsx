@@ -9,7 +9,7 @@ import Layout from './components/Layout';
 import Hero from './components/Hero';
 // import UpcomingEvents from './components/UpcomingEvents';
 import About from './components/About';
-import Mainpagevideo from './components/Mainpagevideo';
+// import Mainpagevideo from './components/Mainpagevideo';
 // import PresidentMessage from './components/PresidentMessage';
 import StayUpdated from './components/StayUpdated';
 // import Sovapa from './components/Academy';
@@ -107,7 +107,7 @@ const App = () => {
           <>
             <Hero />
             <About />
-            <Mainpagevideo />
+            {/* <Mainpagevideo /> */}
            
             <PresidentsMessage />
             {/* <UpcomingEvents /> */}
