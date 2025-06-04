@@ -53,7 +53,7 @@ import SovapaCoursePage from './Pages/AcpSubPages/SovapaCoursePage';
 import VenueSubPage from './Pages/AcpSubPages/VenuesPage';
 import ProfilePage from "./Pages/AcpSubPages/profile";
 import SettingPage from "./Pages/AcpSubPages/Settings";
-import PurchaseHistory from "./Pages/AcpSubPages/PurchaseHistory";
+// import PurchaseHistory from "./Pages/AcpSubPages/PurchaseHistory";
 
 
 // WCF Page
@@ -133,7 +133,7 @@ const App = () => {
         <Route path="/facilities/:venueId" element={<VenueSubPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingPage />} />
-        <Route path="/purchaseHistory" element={<PurchaseHistory />} />
+        {/* <Route path="/purchaseHistory" element={<PurchaseHistory />} /> */}
 
         {/* Arts Alumni Festival Route */}
         {/* <Route path="/alumni" element={<ArtsAlumniFestival />} /> */}
