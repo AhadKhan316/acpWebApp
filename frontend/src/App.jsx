@@ -52,7 +52,7 @@ import UpcomingEventsPage from './Pages/AcpSubPages/UpcomingEventsPage';
 import SovapaCoursePage from './Pages/AcpSubPages/SovapaCoursePage';
 import VenueSubPage from './Pages/AcpSubPages/VenuesPage';
 import ProfilePage from "./Pages/AcpSubPages/profile";
-import SettingPage from "./Pages/AcpSubPages/Settings";
+import Settings from "./Pages/AcpSubPages/Settings";
 import PurchaseHistory from "./Pages/AcpSubPages/PurchaseHistory";
 
 
@@ -132,7 +132,7 @@ const App = () => {
         <Route path="/sovapa/:department" element={<SovapaCoursePage />}></Route>
         <Route path="/facilities/:venueId" element={<VenueSubPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/Settings" element={<SettingPage />} />
+        <Route path="/Settings" element={<Settings />} />
         <Route path="/purchaseHistory" element={<PurchaseHistory />} />
 
         {/* Arts Alumni Festival Route */}
