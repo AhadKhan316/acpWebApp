@@ -18,7 +18,7 @@ const app = express();
 
 // Enhanced CORS configuration
 app.use(cors({
-  origin: 'https://acpkhi.com',
+  origin: 'https://vercel.com/ahad-khans-projects-f48d0f78/acp-web-app',
   credentials: true
 }));
 
