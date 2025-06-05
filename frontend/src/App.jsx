@@ -52,7 +52,7 @@ import UpcomingEventsPage from './Pages/AcpSubPages/UpcomingEventsPage';
 import SovapaCoursePage from './Pages/AcpSubPages/SovapaCoursePage';
 import VenueSubPage from './Pages/AcpSubPages/VenuesPage';
 import ProfilePage from "./Pages/AcpSubPages/profile";
-import SettingPage from "./Pages/AcpSubPages/Settings";
+import SettingPage from "./Pages/AcpSubPages/SettingPage";
 // import PurchaseHistory from "./Pages/AcpSubPages/PurchaseHistory";
 
 
