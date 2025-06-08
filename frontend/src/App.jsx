@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { Navigate } from 'react-router-dom';
 import './styles.css';
 
+
 // Components
 import AlumniRedirect from './components/AlumniRedirect';
 import Layout from './components/Layout';
@@ -51,8 +52,8 @@ import ResendOtp from './Pages/ResendOtp';
 import UpcomingEventsPage from './Pages/AcpSubPages/UpcomingEventsPage';
 import SovapaCoursePage from './Pages/AcpSubPages/SovapaCoursePage';
 import VenueSubPage from './Pages/AcpSubPages/VenuesPage';
-import ProfilePage from "./Pages/AcpSubPages/profile";
-import SettingPage from "./Pages/AcpSubPages/SettingPage";
+
+// import SettingPage from "./Pages/AcpSubPages/SettingPage";
 // import PurchaseHistory from "./Pages/AcpSubPages/PurchaseHistory";
 
 
@@ -96,6 +97,9 @@ import RegistrationForm from './Pages/RegistrationForm';
 
 // import WcfArtistPage from "./Pages/WcfSubPages/2024/wcfArtistPage"
 
+import Dashboard from './pages/Dashboard';
+import SettingPage from './pages/SettingPage';
+import ProfilePage from "./Pages/profile";
 
 
 const App = () => {
@@ -126,13 +130,16 @@ const App = () => {
           </>
         } />
 
+
+
+        
         {/* ACP Sub Pages */}
         <Route path="/initiatives" element={<Initiatives />} />
         <Route path="/upcomingEvents" element={<UpcomingEventsPage />}></Route>
         <Route path="/sovapa/:department" element={<SovapaCoursePage />}></Route>
         <Route path="/facilities/:venueId" element={<VenueSubPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/settings" element={<SettingPage />} />
+        
+        {/* <Route path="/SettingPage" element={<SettingPage />} /> */}
         {/* <Route path="/purchaseHistory" element={<PurchaseHistory />} /> */}
 
         {/* Arts Alumni Festival Route */}
@@ -165,7 +172,14 @@ const App = () => {
         <Route path="/userportal/events" element={<EventsPortal />} />
         <Route path="/userportal/profile" element={<UserProfile />} />
         <Route path="/RegistrationForm" element={<RegistrationForm />} />
+
+        <Route path="/dashboard" element={<Dashboard />} />
+<Route path="/profile" element={<ProfilePage />} />
+<Route path="/settings" element={<SettingPage />} />
       </Route>
+
+
+      
 
       {/* Routes without Navbar and Footer */}
 
