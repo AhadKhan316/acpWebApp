@@ -92,14 +92,17 @@ import Email from './Pages/Email';
 
 import DelegatesPage from './Pages/DelegatesPage';
 
+// import EventsCalendar from './Pages/EventsCalendar';
+
 
 import RegistrationForm from './Pages/RegistrationForm';
 
 // import WcfArtistPage from "./Pages/WcfSubPages/2024/wcfArtistPage"
 
-import Dashboard from './pages/Dashboard';
+import DashboardPage from './pages/Dashboard';
 import SettingPage from './pages/SettingPage';
 import ProfilePage from "./Pages/profile";
+import { Import } from "lucide-react";
 
 
 const App = () => {
@@ -139,11 +142,7 @@ const App = () => {
         <Route path="/sovapa/:department" element={<SovapaCoursePage />}></Route>
         <Route path="/facilities/:venueId" element={<VenueSubPage />} />
         
-        {/* <Route path="/SettingPage" element={<SettingPage />} /> */}
-        {/* <Route path="/purchaseHistory" element={<PurchaseHistory />} /> */}
-
-        {/* Arts Alumni Festival Route */}
-        {/* <Route path="/alumni" element={<ArtsAlumniFestival />} /> */}
+    
 
         {/* OTP Pages */}
         <Route path="/verifyOtp" element={<VerifyOtp />} />
@@ -173,9 +172,10 @@ const App = () => {
         <Route path="/userportal/profile" element={<UserProfile />} />
         <Route path="/RegistrationForm" element={<RegistrationForm />} />
 
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
 <Route path="/profile" element={<ProfilePage />} />
 <Route path="/settings" element={<SettingPage />} />
+{/* <Route path="/eventcalander" element={<EventsCalendar/>}/> */}
       </Route>
 
 
