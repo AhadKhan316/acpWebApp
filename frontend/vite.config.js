@@ -69,7 +69,7 @@ export default defineConfig({
   },
 
   build: {
-    outDir: "dist",
+    outDir: "/frontend/dist/",
     assetsDir: "assets",
     rollupOptions: {
       output: {
