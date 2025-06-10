@@ -12,10 +12,15 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: "auto",
       workbox: {
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15MB limit
         cleanupOutdatedCaches: true,
         globDirectory: "dist",
         globPatterns: ["**/*.{js,css,html,woff,woff2,ttf,eot,svg,png,jpg,jpeg,ico}"],
-        globIgnores: ["**/node_modules/**/*", "sw.js", "workbox-*.js"],
+        globIgnores: [
+          "**/node_modules/**",
+          "sw.js",
+          "workbox-*.js"
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === "image",
@@ -52,8 +57,8 @@ export default defineConfig({
   ],
 
   server: {
-    host: "0.0.0.0", // Listen on all interfaces
-    port: 5173, // Default Vite port
+    host: "0.0.0.0",
+    port: 5173,
   },
 
   resolve: {
@@ -68,9 +73,9 @@ export default defineConfig({
     assetsDir: "assets",
     rollupOptions: {
       output: {
-        entryFileNames: `assets/[name].[hash].js`,
-        chunkFileNames: `assets/[name].[hash].js`,
-        assetFileNames: `assets/[name].[hash].[ext]`,
+        entryFileNames: "assets/[name].[hash].js",
+        chunkFileNames: "assets/[name].[hash].js",
+        assetFileNames: "assets/[name].[hash].[ext]",
       },
     },
   },
