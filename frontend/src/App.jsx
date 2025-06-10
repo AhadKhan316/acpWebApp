@@ -101,7 +101,7 @@ import RegistrationForm from './Pages/RegistrationForm';
 
 import DashboardPage from './Pages/Dashboard';
 import SettingPage from './Pages/SettingPage';
-import ProfilePage from "./Pages/profile";
+import ProfilePage from "./Pages/Profile";
 import { Import } from "lucide-react";
 
 
