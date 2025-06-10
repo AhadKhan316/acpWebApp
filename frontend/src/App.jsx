@@ -100,7 +100,7 @@ import RegistrationForm from './Pages/RegistrationForm';
 // import WcfArtistPage from "./Pages/WcfSubPages/2024/wcfArtistPage"
 
 import DashboardPage from './Pages/Dashboard';
-import SettingPage from './pages/SettingPage';
+import SettingPage from './Pages/SettingPage';
 import ProfilePage from "./Pages/profile";
 import { Import } from "lucide-react";
 
