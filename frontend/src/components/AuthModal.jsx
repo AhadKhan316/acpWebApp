@@ -4,7 +4,14 @@ import { supabase } from "../services/supabaseClient";
 
 export default function AuthModal({ onClose, onSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ full_name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({
+    full_name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [resetEmail, setResetEmail] = useState("");
+  const [showReset, setShowReset] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,6 +34,11 @@ export default function AuthModal({ onClose, onSuccess }) {
         onSuccess(data.user);
         onClose();
       } else {
+        if (formData.password !== formData.confirmPassword) {
+          setError("Passwords do not match");
+          setLoading(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -37,10 +49,7 @@ export default function AuthModal({ onClose, onSuccess }) {
           },
         });
         if (error) throw error;
-
-        // Create user_settings row after successful signup
         await supabase.from("user_settings").insert({ id: data.user.id });
-
         onSuccess(data.user);
         onClose();
       }
@@ -49,6 +58,34 @@ export default function AuthModal({ onClose, onSuccess }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin + "/reset-password",
+      });
+      if (error) throw error;
+      alert("Password reset link sent!");
+      setShowReset(false);
+    } catch (err) {
+      setError(err.message || "Failed to send reset email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) setError("Google sign-in failed");
   };
 
   return (
@@ -93,6 +130,30 @@ export default function AuthModal({ onClose, onSuccess }) {
               required
               minLength="8"
             />
+            {!isLogin && (
+              <input
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm Password"
+                className="w-full border p-2 rounded"
+                onChange={handleInput}
+                value={formData.confirmPassword}
+                required
+              />
+            )}
+
+            {isLogin && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setShowReset(true)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
+
             <button
               type="submit"
               className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
@@ -101,6 +162,34 @@ export default function AuthModal({ onClose, onSuccess }) {
               {loading ? "Please wait..." : isLogin ? "Login" : "Join for Free"}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full border border-gray-300 flex items-center justify-center gap-2 py-2 rounded hover:bg-gray-100"
+            >
+              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" className="w-5 h-5" />
+              Continue with Google
+            </button>
+          </div>
+
+          {showReset && (
+            <form onSubmit={handleForgotPassword} className="mt-4 space-y-3">
+              <h3 className="text-sm font-semibold">Reset Password</h3>
+              <input
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="Your email"
+                required
+                className="w-full border p-2 rounded"
+              />
+              <div className="flex gap-2">
+                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Send Link</button>
+                <button type="button" onClick={() => setShowReset(false)} className="px-4 py-2 border rounded">Cancel</button>
+              </div>
+            </form>
+          )}
 
           <div className="mt-4 text-sm text-center">
             {isLogin ? (

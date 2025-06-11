@@ -102,6 +102,7 @@ import RegistrationForm from './Pages/RegistrationForm';
 import DashboardPage from './Pages/Dashboard';
 import SettingPage from './Pages/SettingPage';
 import ProfilePage from "./Pages/Profile";
+import ResetPassword from "./Pages/ResetPassword"
 import { Import } from "lucide-react";
 
 
@@ -147,6 +148,8 @@ const App = () => {
         {/* OTP Pages */}
         <Route path="/verifyOtp" element={<VerifyOtp />} />
         <Route path="/resend-otp" element={<ResendOtp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
 
         {/* Contact Us */}
 
