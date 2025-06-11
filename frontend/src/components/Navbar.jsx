@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import acpLogo from '/src/assets/acp-logo-and-hero-img/acp-logo-fullName-white.png';
 import { supabase } from '../services/supabaseClient';
 import AuthModal from '../components/AuthModal';
-// import { toast } from 'react-toastify';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,6 +16,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const menuRef = useRef(null);
   const userMenuRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const getSession = async () => {
@@ -25,7 +25,7 @@ const Navbar = () => {
         const { data: { session } } = await supabase.auth.getSession();
         setCurrentUser(session?.user || null);
       } catch (error) {
-        toast.error('Error fetching session');
+        alert('Error fetching session');
       } finally {
         setIsLoading(false);
       }
@@ -45,9 +45,9 @@ const Navbar = () => {
       await supabase.auth.signOut();
       setCurrentUser(null);
       navigate("/");
-      toast.success('Logged out successfully');
+      alert('Logged out successfully');
     } catch (error) {
-      toast.error('Error logging out');
+      alert('Error logging out');
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +56,51 @@ const Navbar = () => {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setShowAuthModal(false);
-    toast.success('Logged in successfully');
+    alert('Logged in successfully');
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update user metadata
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { ...currentUser.user_metadata, avatar_url: publicUrl }
+      });
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setCurrentUser({
+        ...currentUser,
+        user_metadata: { ...currentUser.user_metadata, avatar_url: publicUrl }
+      });
+      alert('Profile picture updated successfully');
+    } catch (error) {
+      alert('Error uploading profile picture');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
   };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -73,8 +117,8 @@ const Navbar = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        menuRef.current && 
-        !menuRef.current.contains(event.target) && 
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
         (!userMenuRef.current || !userMenuRef.current.contains(event.target))
       ) {
         setIsMenuOpen(false);
@@ -92,6 +136,15 @@ const Navbar = () => {
 
   const isActiveLink = (path) => location.pathname === path;
 
+  const getAvatarUrl = () => {
+    if (!currentUser) return null;
+    return (
+      currentUser.user_metadata?.avatar_url ||
+      (currentUser.app_metadata?.provider === 'google' && currentUser.user_metadata?.picture) ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.email}`
+    );
+  };
+
   const NavLink = ({ to, children }) => (
     <Link
       to={to}
@@ -99,6 +152,7 @@ const Navbar = () => {
         isActiveLink(to) ? "bg-red-700 font-semibold" : "font-medium"
       }`}
       aria-current={isActiveLink(to) ? "page" : undefined}
+      onClick={() => setIsMenuOpen(false)} // Close mobile menu on click
     >
       {children}
     </Link>
@@ -134,7 +188,7 @@ const Navbar = () => {
     <header className="bg-gradient-to-r from-gray-900 to-black sticky top-0 z-50 shadow-xl">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 sm:h-20" ref={menuRef}>
         {/* Logo */}
-        <Link to="/" className="flex items-center h-full" aria-label="Home">
+        <Link to="/" className="flex items-center h-full" aria-label="Home" onClick={() => setIsMenuOpen(false)}>
           <img 
             src={acpLogo} 
             alt="Arts Council Logo" 
@@ -185,7 +239,7 @@ const Navbar = () => {
               <div className="relative group">
                 <div className="flex items-center gap-2 cursor-pointer">
                   <img
-                    src={currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.email}`}
+                    src={getAvatarUrl()}
                     className="w-10 h-10 rounded-full object-cover border-2 border-red-600 transition-transform duration-300 group-hover:scale-110"
                     alt="User avatar"
                     aria-label="User menu"
@@ -198,6 +252,21 @@ const Navbar = () => {
                   <div className="p-4 border-b border-gray-700">
                     <p className="text-sm font-semibold">{currentUser.user_metadata?.full_name || 'User'}</p>
                     <p className="text-xs text-gray-400">{currentUser.email}</p>
+                    <button
+                      onClick={triggerFileInput}
+                      className="mt-2 text-xs text-red-400 hover:text-red-300"
+                      disabled={isLoading}
+                    >
+                      Change Profile Picture
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleAvatarUpload}
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isLoading}
+                    />
                   </div>
                   <Link to="/dashboard" className="block px-4 py-2 hover:bg-red-600 rounded-t-lg">Dashboard</Link>
                   <Link to="/profile" className="block px-4 py-2 hover:bg-red-600">Profile</Link>
@@ -278,13 +347,28 @@ const Navbar = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 p-4 bg-gray-800 rounded-lg">
                     <img
-                      src={currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.email}`}
+                      src={getAvatarUrl()}
                       className="w-12 h-12 rounded-full object-cover border-2 border-red-600"
                       alt="User avatar"
                     />
                     <div>
                       <p className="text-white font-semibold">{currentUser.user_metadata?.full_name || 'User'}</p>
                       <p className="text-gray-400 text-sm">{currentUser.email}</p>
+                      <button
+                        onClick={triggerFileInput}
+                        className="mt-2 text-xs text-red-400 hover:text-red-300"
+                        disabled={isLoading}
+                      >
+                        Change Profile Picture
+                      </button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleAvatarUpload}
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isLoading}
+                      />
                     </div>
                   </div>
                   <NavLink to="/dashboard">Dashboard</NavLink>
@@ -301,7 +385,10 @@ const Navbar = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => {
+                    setShowAuthModal(true);
+                    setIsMenuOpen(false);
+                  }}
                   disabled={isLoading}
                   className="flex items-center gap-2 py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md transition-all duration-300 font-medium disabled:opacity-50"
                 >
