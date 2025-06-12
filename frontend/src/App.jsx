@@ -102,9 +102,13 @@ import RegistrationForm from './Pages/RegistrationForm';
 import DashboardPage from './Pages/Dashboard';
 import SettingPage from './Pages/SettingPage';
 import ProfilePage from "./Pages/Profile";
-import ResetPassword from "./Pages/ResetPassword"
-import { Import } from "lucide-react";
+import ResetPassword from "./Pages/ResetPassword";
 
+import AdminUploadEvent from "./Pages/AdminUploadEvent"
+// import UploadEventPage from "./Pages/AcpSubPages/UploadEventPage";
+
+// Remove the unused import
+// import { Import } from "lucide-react";
 
 const App = () => {
   return (
@@ -174,11 +178,15 @@ const App = () => {
         <Route path="/userportal/events" element={<EventsPortal />} />
         <Route path="/userportal/profile" element={<UserProfile />} />
         <Route path="/RegistrationForm" element={<RegistrationForm />} />
+        <Route path="/admin/upload" element={<AdminUploadEvent />} />
+
 
         <Route path="/dashboard" element={<DashboardPage />} />
 <Route path="/profile" element={<ProfilePage />} />
 <Route path="/settings" element={<SettingPage />} />
 {/* <Route path="/eventcalander" element={<EventsCalendar/>}/> */}
+ {/* <Route path="/uploadevent" element={<UploadEventPage/>}/>  */}
+
       </Route>
 
 

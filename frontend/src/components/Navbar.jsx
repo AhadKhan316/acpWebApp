@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FaBars, FaTimes, FaChevronDown, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { FaBars, FaTimes, FaChevronDown, FaUser , FaSignOutAlt } from "react-icons/fa";
 import PropTypes from 'prop-types';
 import acpLogo from '/src/assets/acp-logo-and-hero-img/acp-logo-fullName-white.png';
 import { supabase } from '../services/supabaseClient';
@@ -10,7 +10,7 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSubMenuOpen, setIsSubMenuOpen] = useState({});
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser , setCurrentUser ] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const Navbar = () => {
       setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setCurrentUser(session?.user || null);
+        setCurrentUser (session?.user || null);
       } catch (error) {
         alert('Error fetching session');
       } finally {
@@ -33,7 +33,7 @@ const Navbar = () => {
     getSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user || null);
+      setCurrentUser (session?.user || null);
     });
 
     return () => listener.subscription.unsubscribe();
@@ -43,7 +43,7 @@ const Navbar = () => {
     setIsLoading(true);
     try {
       await supabase.auth.signOut();
-      setCurrentUser(null);
+      setCurrentUser (null);
       navigate("/");
       alert('Logged out successfully');
     } catch (error) {
@@ -54,7 +54,7 @@ const Navbar = () => {
   };
 
   const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
+    setCurrentUser (user);
     setShowAuthModal(false);
     alert('Logged in successfully');
   };
@@ -65,31 +65,27 @@ const Navbar = () => {
 
     setIsLoading(true);
     try {
-      // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${currentUser .id}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Update user metadata
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { ...currentUser.user_metadata, avatar_url: publicUrl }
+      const { error: updateError } = await supabase.auth.updateUser ({
+        data: { ...currentUser .user_metadata, avatar_url: publicUrl }
       });
 
       if (updateError) throw updateError;
 
-      // Update local state
-      setCurrentUser({
-        ...currentUser,
-        user_metadata: { ...currentUser.user_metadata, avatar_url: publicUrl }
+      setCurrentUser ({
+        ...currentUser ,
+        user_metadata: { ...currentUser .user_metadata, avatar_url: publicUrl }
       });
       alert('Profile picture updated successfully');
     } catch (error) {
@@ -103,7 +99,9 @@ const Navbar = () => {
     fileInputRef.current.click();
   };
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
   const toggleSubMenu = (menu, event) => {
     event.preventDefault();
@@ -137,22 +135,22 @@ const Navbar = () => {
   const isActiveLink = (path) => location.pathname === path;
 
   const getAvatarUrl = () => {
-    if (!currentUser) return null;
+    if (!currentUser ) return null;
     return (
-      currentUser.user_metadata?.avatar_url ||
-      (currentUser.app_metadata?.provider === 'google' && currentUser.user_metadata?.picture) ||
-      `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.email}`
+      currentUser .user_metadata?.avatar_url ||
+      (currentUser .app_metadata?.provider === 'google' && currentUser .user_metadata?.picture) ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser .email}`
     );
   };
 
   const NavLink = ({ to, children }) => (
     <Link
       to={to}
-      className={`block py-2 px-4 text-white hover:bg-red-600 hover:text-white rounded-md transition-all duration-300 ease-in-out ${
+      className={`block py-2 px-4 text-white hover:bg-red-600 rounded-md transition-all duration-300 ease-in-out ${
         isActiveLink(to) ? "bg-red-700 font-semibold" : "font-medium"
       }`}
       aria-current={isActiveLink(to) ? "page" : undefined}
-      onClick={() => setIsMenuOpen(false)} // Close mobile menu on click
+      onClick={() => setIsMenuOpen(false)}
     >
       {children}
     </Link>
@@ -166,7 +164,7 @@ const Navbar = () => {
   const DropdownButton = ({ children, onClick, isOpen }) => (
     <button
       onClick={onClick}
-      className={`flex items-center justify-between w-full py-2 px-4 text-white hover:bg-red-600 hover:text-white font-medium rounded-md transition-all duration-300 ease-in-out ${
+      className={`flex items-center justify-between w-full py-2 px-4 text-white hover:bg-red-600 font-medium rounded-md transition-all duration-300 ease-in-out ${
         isOpen ? "bg-red-700" : ""
       }`}
       aria-expanded={isOpen}
@@ -188,7 +186,12 @@ const Navbar = () => {
     <header className="bg-gradient-to-r from-gray-900 to-black sticky top-0 z-50 shadow-xl">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 sm:h-20" ref={menuRef}>
         {/* Logo */}
-        <Link to="/" className="flex items-center h-full" aria-label="Home" onClick={() => setIsMenuOpen(false)}>
+        <Link
+          to="/"
+          className="flex items-center h-full"
+          aria-label="Home"
+          onClick={() => setIsMenuOpen(false)}
+        >
           <img 
             src={acpLogo} 
             alt="Arts Council Logo" 
@@ -235,23 +238,23 @@ const Navbar = () => {
 
           {/* Auth Section */}
           <li ref={userMenuRef}>
-            {currentUser ? (
+            {currentUser  ? (
               <div className="relative group">
                 <div className="flex items-center gap-2 cursor-pointer">
                   <img
                     src={getAvatarUrl()}
                     className="w-10 h-10 rounded-full object-cover border-2 border-red-600 transition-transform duration-300 group-hover:scale-110"
-                    alt="User avatar"
-                    aria-label="User menu"
+                    alt="User  avatar"
+                    aria-label="User  menu"
                   />
                   <span className="text-white text-sm font-medium hidden xl:block">
-                    {currentUser.user_metadata?.full_name || currentUser.email}
+                    {currentUser .user_metadata?.full_name || currentUser .email}
                   </span>
                 </div>
                 <div className="absolute right-0 mt-2 w-64 bg-gray-800 text-white shadow-2xl rounded-lg z-50 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform -translate-y-2 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto">
                   <div className="p-4 border-b border-gray-700">
-                    <p className="text-sm font-semibold">{currentUser.user_metadata?.full_name || 'User'}</p>
-                    <p className="text-xs text-gray-400">{currentUser.email}</p>
+                    <p className="text-sm font-semibold">{currentUser .user_metadata?.full_name || 'User '}</p>
+                    <p className="text-xs text-gray-400">{currentUser .email}</p>
                     <button
                       onClick={triggerFileInput}
                       className="mt-2 text-xs text-red-400 hover:text-red-300"
@@ -268,11 +271,29 @@ const Navbar = () => {
                       disabled={isLoading}
                     />
                   </div>
-                  <Link to="/dashboard" className="block px-4 py-2 hover:bg-red-600 rounded-t-lg">Dashboard</Link>
-                  <Link to="/profile" className="block px-4 py-2 hover:bg-red-600">Profile</Link>
-                  <Link to="/settings" className="block px-4 py-2 hover:bg-red-600">Settings</Link>
+                  <Link
+                    to="/dashboard"
+                    className="block px-4 py-2 hover:bg-red-600 rounded-t-lg"
+                    onClick={() => console.log('Dashboard link clicked')}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 hover:bg-red-600"
+                    onClick={() => console.log('Profile link clicked')}
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 hover:bg-red-600"
+                    onClick={() => console.log('Settings link clicked')}
+                  >
+                    Settings
+                  </Link>
                   <button 
-                    onClick={handleLogout} 
+                    onClick={handleLogout}
                     disabled={isLoading}
                     className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-red-600 rounded-b-lg disabled:opacity-50"
                   >
@@ -287,7 +308,7 @@ const Navbar = () => {
                 disabled={isLoading}
                 className="flex items-center gap-2 py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md transition-all duration-300 font-medium disabled:opacity-50"
               >
-                <FaUser className="w-4 h-4" />
+                <FaUser  className="w-4 h-4" />
                 {isLoading ? 'Loading...' : 'Sign In'}
               </button>
             )}
@@ -306,7 +327,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-gray-900 px-4 pt-4 pb-6 shadow-2xl">
+        <div className="lg:hidden fixed inset-x-0 top-[4rem] sm:top-[5rem] bg-gray-900 px-4 pt-4 pb-6 shadow-2xl z-40">
           <ul className="space-y-2">
             <li><NavLink to="/">Home</NavLink></li>
             <li>
@@ -343,17 +364,17 @@ const Navbar = () => {
             </li>
             <li><NavLink to="/ContactUs">Contact Us</NavLink></li>
             <li>
-              {currentUser ? (
+              {currentUser  ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 p-4 bg-gray-800 rounded-lg">
                     <img
                       src={getAvatarUrl()}
                       className="w-12 h-12 rounded-full object-cover border-2 border-red-600"
-                      alt="User avatar"
+                      alt="User  avatar"
                     />
                     <div>
-                      <p className="text-white font-semibold">{currentUser.user_metadata?.full_name || 'User'}</p>
-                      <p className="text-gray-400 text-sm">{currentUser.email}</p>
+                      <p className="text-white font-semibold">{currentUser .user_metadata?.full_name || 'User '}</p>
+                      <p className="text-gray-400 text-sm">{currentUser .email}</p>
                       <button
                         onClick={triggerFileInput}
                         className="mt-2 text-xs text-red-400 hover:text-red-300"
@@ -375,7 +396,10 @@ const Navbar = () => {
                   <NavLink to="/profile">Profile</NavLink>
                   <NavLink to="/settings">Settings</NavLink>
                   <button 
-                    onClick={handleLogout} 
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
                     disabled={isLoading}
                     className="flex items-center gap-2 w-full text-left py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md transition-all duration-300 disabled:opacity-50"
                   >
@@ -392,7 +416,7 @@ const Navbar = () => {
                   disabled={isLoading}
                   className="flex items-center gap-2 py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md transition-all duration-300 font-medium disabled:opacity-50"
                 >
-                  <FaUser className="w-4 h-4" />
+                  <FaUser  className="w-4 h-4" />
                   {isLoading ? 'Loading...' : 'Sign In'}
                 </button>
               )}
