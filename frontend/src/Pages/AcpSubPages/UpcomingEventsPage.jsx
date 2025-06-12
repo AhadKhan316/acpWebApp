@@ -1,20 +1,31 @@
-// src/pages/UpcomingEventsPage.jsx
+// 📁 src/pages/UpcomingEventsPage.jsx
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import EventCard from "../../components/EventCard";
-import { fetchUpcomingEvents } from "../../services/eventService";
+import { supabase } from "../../services/supabaseClient";
 
 const UpcomingEventsPage = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchUpcomingEvents()
-      .then((data) => {
-        const sorted = data.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
-        setEvents(sorted);
-      })
-      .catch((err) => setError(err.message));
+    async function fetchEvents() {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .order("start_date", { ascending: true });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      const filtered = data.filter((e) => new Date(e.start_date) >= new Date());
+      const sorted = filtered.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+      setEvents(sorted);
+    }
+
+    fetchEvents();
   }, []);
 
   return (
