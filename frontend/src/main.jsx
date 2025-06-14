@@ -4,9 +4,13 @@ import './index.css';
 import App from './App';
 
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { SessionContextProvider } from "@supabase/auth-helpers-react";
+
+// ✅ Supabase + Auth
+import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from './services/supabaseClient';
+
+// ✅ Your Custom Auth Context
+import { AuthProvider } from './context/AuthContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 

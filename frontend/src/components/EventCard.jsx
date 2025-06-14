@@ -1,91 +1,59 @@
 // src/components/EventCard.jsx
-import { useState } from "react";
-import { useSessionContext, useUser } from "@supabase/auth-helpers-react";
+import { useSession } from "@supabase/auth-helpers-react";
+import { useNavigate } from "react-router-dom";
 import { markAttendance } from "../services/attendanceService";
-import { Calendar, MapPin, Clock, Ticket } from "lucide-react";
+import { Calendar, MapPin, Ticket } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const EventCard = ({ event }) => {
-  const { supabaseClient } = useSessionContext();
-  const user = useUser();
-  const [attending, setAttending] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { session } = useSession();
+  const navigate = useNavigate();
 
   const handleAttend = async () => {
-    if (!user) return;
-    setLoading(true);
+    if (!session) return navigate("/login");
     try {
-      await markAttendance(supabaseClient, user.id, event.id);
-      setAttending(true);
+      await markAttendance(session.user.id, event.id);
+      toast.success("You are marked as attending.");
     } catch (err) {
-      console.error("Failed to mark attendance:", err);
-    } finally {
-      setLoading(false);
+      toast.error("Already marked as attending.");
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
-      <img
-        src={event.image_url}
-        alt={event.title}
-        className="w-full h-48 object-cover"
-      />
+    <div className="bg-white shadow rounded-xl overflow-hidden">
+      <img src={event.image_url} alt={event.title} className="w-full h-48 object-cover" />
       <div className="p-4">
-        <h3 className="text-xl font-bold text-gray-900 mb-1">{event.title}</h3>
+        <h3 className="text-lg font-bold">{event.title}</h3>
+        <p className="text-sm text-gray-600 mt-1 flex items-center">
+          <Calendar className="w-4 h-4 mr-1" />
+          {new Date(event.start_date).toLocaleDateString()}
+        </p>
+        <p className="text-sm text-gray-600 mt-1 flex items-center">
+          <MapPin className="w-4 h-4 mr-1" />
+          {event.location || "TBA"}
+        </p>
+        <p className="mt-3 text-sm text-gray-700 line-clamp-2">{event.description}</p>
 
-        <div className="flex items-center text-gray-600 text-sm mb-2">
-          <Calendar className="h-4 w-4 mr-2" />
-          {new Date(event.start_date).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </div>
-
-        {event.location && (
-          <div className="flex items-center text-gray-600 text-sm mb-2">
-            <MapPin className="h-4 w-4 mr-2" />
-            {event.location}
-          </div>
-        )}
-
-        <p className="text-sm text-gray-700 mb-3 line-clamp-3">{event.description}</p>
-
-        <div className="flex flex-wrap gap-2">
-          {event.ticketsLink && event.eventType === "paid" && (
+        <div className="mt-4 flex justify-between items-center">
+          {event.type === "free" ? (
+            session ? (
+              <button onClick={handleAttend} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                I'm Attending
+              </button>
+            ) : (
+              <button onClick={() => navigate("/login")} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Register Yourself
+              </button>
+            )
+          ) : (
             <a
-              href={event.ticketsLink}
+              href={event.tickets_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-[#B90602] text-white text-sm rounded-lg hover:bg-red-800"
+              className="px-4 py-2 bg-[#B90602] text-white rounded hover:bg-red-800 flex items-center"
             >
-              <Ticket className="h-4 w-4 mr-1 inline" /> Get Tickets
-            </a>
-          )}
-
-          {event.eventType === "free" && user && !attending && (
-            <button
-              onClick={handleAttend}
-              disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-            >
-              {loading ? "Joining..." : "I'm Attending"}
-            </button>
-          )}
-
-          {event.eventType === "free" && user && attending && (
-            <div className="px-4 py-2 bg-gray-300 text-sm rounded-lg">
-              You’re attending
-            </div>
-          )}
-
-          {event.eventType === "free" && !user && (
-            <a
-              href="/login"
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-            >
-              Register Yourself
+              <Ticket className="w-4 h-4 mr-1" />
+              Get Tickets
             </a>
           )}
         </div>

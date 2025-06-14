@@ -9,12 +9,14 @@
  * @returns {Promise<object>} - The inserted attendance record.
  * @throws {Error} - If insertion fails due to RLS or validation error.
  */
-export const markAttendance = async (supabase, userId, eventId) => {
-    const { data, error } = await supabase
-      .from("user_events")
-      .insert([{ user_id: userId, event_id: eventId }]);
-  
-    if (error) throw new Error(error.message);
-    return data;
-  };
+
+// src/services/attendanceService.js
+import { supabase } from "./supabaseClient";
+
+export const markAttendance = async (userId, eventId) => {
+  const { error } = await supabase.from("attendees").insert({ user_id: userId, event_id: eventId });
+  if (error) throw new Error(error.message);
+};
+
+
   
