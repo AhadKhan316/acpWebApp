@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.17",
+    "@fullcalendar/interaction": "^6.1.17",
+    "@fullcalendar/react": "^6.1.17",
     "@mdi/react": "^1.6.1",
     "@react-google-maps/api": "^2.20.6",
     "@supabase/auth-helpers-react": "^0.5.0",

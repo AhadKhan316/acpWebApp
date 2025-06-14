@@ -1,58 +1,107 @@
-// src/components/EventCard.jsx
+// Fully updated EventCard.jsx styled to match final shared design
 import { useSession } from "@supabase/auth-helpers-react";
-import { useNavigate } from "react-router-dom";
 import { markAttendance } from "../services/attendanceService";
-import { Calendar, MapPin, Ticket } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { Calendar, Clock, MapPin } from "lucide-react";
+
 
 const EventCard = ({ event }) => {
-  const { session } = useSession();
-  const navigate = useNavigate();
+  const session = useSession();
 
   const handleAttend = async () => {
-    if (!session) return navigate("/login");
+    if (!session?.user) {
+      toast.error("Please log in to register.");
+      window.location.href = "/login";
+      return;
+    }
+
     try {
       await markAttendance(session.user.id, event.id);
       toast.success("You are marked as attending.");
     } catch (err) {
-      toast.error("Already marked as attending.");
+      toast.error("You’ve already registered for this event.");
     }
   };
 
-  return (
-    <div className="bg-white shadow rounded-xl overflow-hidden">
-      <img src={event.image_url} alt={event.title} className="w-full h-48 object-cover" />
-      <div className="p-4">
-        <h3 className="text-lg font-bold">{event.title}</h3>
-        <p className="text-sm text-gray-600 mt-1 flex items-center">
-          <Calendar className="w-4 h-4 mr-1" />
-          {new Date(event.start_date).toLocaleDateString()}
-        </p>
-        <p className="text-sm text-gray-600 mt-1 flex items-center">
-          <MapPin className="w-4 h-4 mr-1" />
-          {event.location || "TBA"}
-        </p>
-        <p className="mt-3 text-sm text-gray-700 line-clamp-2">{event.description}</p>
+  const formattedDate = new Date(event.start_date);
 
-        <div className="mt-4 flex justify-between items-center">
+  return (
+    <div className="flex flex-col md:flex-row bg-white rounded-xl shadow border overflow-hidden">
+      <div className="md:w-1/2 w-full">
+        <img
+          src={event.image_url || "/placeholder.jpg"}
+          alt={event.title}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      <div className="flex flex-col justify-between md:w-1/2 w-full p-6">
+        <div className="flex justify-between items-start">
+          <span className="bg-red-600 text-white text-xs px-3 py-1 rounded-full font-semibold">
+            Featured
+          </span>
+          <div className="text-right">
+            <p className="text-sm text-gray-500 font-medium">
+              {formattedDate.toLocaleDateString("en-US", { weekday: "short" })}
+            </p>
+            <p className="text-2xl text-red-700 font-bold leading-none">
+              {formattedDate.getDate()}
+            </p>
+            <p className="text-sm text-gray-500">
+              {formattedDate.toLocaleDateString("en-US", { month: "short" })}
+            </p>
+          </div>
+        </div>
+
+        <h3 className="text-2xl font-bold mt-4 text-gray-900">{event.title}</h3>
+
+        <p className="flex items-center text-gray-700 text-sm mt-2">
+          <Calendar className="w-4 h-4 mr-2" />
+          {formattedDate.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </p>
+
+        <p className="flex items-center text-gray-700 text-sm mt-1">
+          <Clock className="w-4 h-4 mr-2" />
+          {event.time || "TBA"}
+        </p>
+
+        <p className="flex items-center text-gray-700 text-sm mt-1">
+          <MapPin className="w-4 h-4 mr-2" />
+          {event.location || "Venue TBA"}
+        </p>
+
+        <p className="text-sm text-gray-600 mt-3 mb-5">
+          {event.description?.slice(0, 130) || "Details coming soon..."}
+        </p>
+
+        <div>
           {event.type === "free" ? (
-            session ? (
-              <button onClick={handleAttend} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            session?.user ? (
+              <button
+                onClick={handleAttend}
+                className="px-5 py-2 text-sm font-semibold bg-red-700 text-white rounded hover:bg-red-800"
+              >
                 I'm Attending
               </button>
             ) : (
-              <button onClick={() => navigate("/login")} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              <a
+                href="/login"
+                className="px-5 py-2 text-sm font-semibold bg-red-700 text-white rounded hover:bg-red-800"
+              >
                 Register Yourself
-              </button>
+              </a>
             )
           ) : (
             <a
               href={event.tickets_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-[#B90602] text-white rounded hover:bg-red-800 flex items-center"
+              className="px-5 py-2 text-sm font-semibold bg-red-700 text-white rounded hover:bg-red-800"
             >
-              <Ticket className="w-4 h-4 mr-1" />
               Get Tickets
             </a>
           )}
