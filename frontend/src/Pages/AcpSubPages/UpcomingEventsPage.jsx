@@ -1,126 +1,210 @@
-// 📁 src/pages/UpcomingEventsPage.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import EventCard from "../../components/EventCard";
 import { supabase } from "../../services/supabaseClient";
+import EventCard from "../../components/EventCard";
 
 const UpcomingEventsPage = () => {
   const [events, setEvents] = useState([]);
-  const [error, setError] = useState("");
+  const [activeView, setActiveView] = useState("grid");
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   useEffect(() => {
-    async function fetchEvents() {
+    const fetchEvents = async () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .order("start_date", { ascending: true });
 
       if (error) {
-        setError(error.message);
+        console.error("Error fetching events:", error.message);
         return;
       }
 
-      const filtered = data.filter((e) => new Date(e.start_date) >= new Date());
-      const sorted = filtered.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
-      setEvents(sorted);
-    }
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const upcoming = data.filter(event => {
+        const end = new Date(event.end_date);
+        end.setHours(23, 59, 59, 999);
+        return end >= now;
+      });
+
+      setEvents(upcoming);
+    };
 
     fetchEvents();
   }, []);
 
+  const changeMonth = (dir) => {
+    if (dir === "prev") {
+      if (selectedMonth === 0) {
+        setSelectedMonth(11);
+        setSelectedYear(selectedYear - 1);
+      } else setSelectedMonth(selectedMonth - 1);
+    } else {
+      if (selectedMonth === 11) {
+        setSelectedMonth(0);
+        setSelectedYear(selectedYear + 1);
+      } else setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const getEventsForMonth = () => {
+    return events.filter(event => {
+      const start = new Date(event.start_date);
+      const end = new Date(event.end_date);
+      return (
+        (start.getMonth() <= selectedMonth && start.getFullYear() <= selectedYear) &&
+        (end.getMonth() >= selectedMonth && end.getFullYear() >= selectedYear)
+      );
+    });
+  };
+
+  const getEventsForDate = (date) => {
+    return events.filter(event => {
+      const start = new Date(event.start_date);
+      const end = new Date(event.end_date);
+      const current = new Date(date);
+      return current >= start && current <= end;
+    });
+  };
+
+  const handleDateClick = (day) => {
+    const clicked = new Date(selectedYear, selectedMonth, day);
+    setSelectedDate(clicked);
+    setActiveView("grid");
+  };
+
+  const renderCalendarDays = () => {
+    const days = [];
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
+
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(<div key={`start-${i}`} className="min-h-24 bg-gray-50" />);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(selectedYear, selectedMonth, day);
+      const isToday = date.toDateString() === new Date().toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
+      const dayEvents = getEventsForDate(date);
+
+      days.push(
+        <div
+          key={`day-${day}`}
+          onClick={() => handleDateClick(day)}
+          className={`p-2 min-h-24 cursor-pointer transition-all
+            ${isToday ? "border-2 border-[#B90602]" : ""}
+            ${isSelected ? "bg-red-50" : "bg-white"}
+            hover:bg-gray-100`}
+        >
+          <div className={`text-right font-medium ${isToday ? "text-[#B90602]" : ""}`}>
+            {day}
+          </div>
+          {dayEvents.slice(0, 2).map((e) => (
+            <div key={e.id} className="text-xs mt-1 bg-red-50 text-[#B90602] p-1 rounded truncate">
+              {e.title}
+            </div>
+          ))}
+          {dayEvents.length > 2 && (
+            <div className="text-xs text-gray-500">+{dayEvents.length - 2} more</div>
+          )}
+        </div>
+      );
+    }
+
+    const totalCells = firstDayOfMonth + daysInMonth;
+    const extraCells = 7 - (totalCells % 7);
+    if (extraCells < 7) {
+      for (let i = 0; i < extraCells; i++) {
+        days.push(<div key={`end-${i}`} className="min-h-24 bg-gray-50" />);
+      }
+    }
+
+    return days;
+  };
+
+  const dayEvents = getEventsForDate(selectedDate);
+  const monthEvents = getEventsForMonth();
+
   return (
     <motion.section
-      className="py-16 bg-gradient-to-b from-slate-50 to-slate-200 text-black"
+      className="py-12 md:py-16 bg-gradient-to-b from-slate-50 to-slate-100 text-gray-900"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-4xl lg:text-5xl font-extrabold text-center mb-4 text-gray-900">
-          Upcoming Events
-        </h2>
-        <p className="text-center text-lg text-gray-600 mb-12 max-w-3xl mx-auto">
-          Discover what’s happening next and secure your spot in these exciting upcoming experiences.
-        </p>
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold mb-2">Upcoming Events</h2>
+          <p className="text-gray-600 max-w-xl mx-auto">
+            Explore what's coming next and join us in our cultural celebrations
+          </p>
+        </div>
 
-        {error && <p className="text-center text-red-600">{error}</p>}
-
-        {events.length > 0 ? (
-          <>
-            {/* Featured Event */}
-            <motion.div
-              className="mb-20"
-              whileHover={{ scale: 1.02 }}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div className="space-x-2">
+            <button
+              onClick={() => setActiveView("grid")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeView === "grid" ? "bg-[#B90602] text-white" : "bg-gray-200 text-gray-700"}`}
             >
-              <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden">
-                <div className="absolute top-0 left-0 bg-[#B90602] text-white text-xs font-bold px-4 py-1 rounded-br-xl">
-                  Featured Event
-                </div>
-                <div className="flex flex-col lg:flex-row">
-                  <div className="lg:w-1/2">
-                    <img
-                      src={events[0].image_url}
-                      alt={events[0].title}
-                      className="w-full h-[300px] lg:h-[400px] object-cover rounded-t-3xl lg:rounded-t-none lg:rounded-l-3xl"
-                    />
-                  </div>
-                  <div className="lg:w-1/2 p-6 lg:p-10 bg-slate-50 flex flex-col justify-center">
-                    <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-                      {events[0].title.toUpperCase()}
-                    </h3>
-                    <p className="text-gray-600 text-base lg:text-lg mb-4">
-                      {new Date(events[0].start_date).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                    <p className="text-gray-700 text-sm sm:text-base mb-6">
-                      {events[0].description}
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                      {events[0].info_link && (
-                        <a
-                          href={events[0].info_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-6 py-3 bg-gray-800 text-white font-semibold text-sm rounded-full hover:bg-gray-900"
-                        >
-                          INFO
-                        </a>
-                      )}
-                      {events[0].tickets_link && (
-                        <a
-                          href={events[0].tickets_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-6 py-3 bg-[#B90602] text-white font-semibold text-sm rounded-full hover:bg-red-800"
-                        >
-                          Register Now
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+              Grid View
+            </button>
+            <button
+              onClick={() => setActiveView("calendar")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeView === "calendar" ? "bg-[#B90602] text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Calendar View
+            </button>
+          </div>
 
-            {/* Other Events */}
-            {events.length > 1 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
-                {events.slice(1).map((event, i) => (
-                  <motion.div key={event.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }}>
-                    <EventCard event={event} />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="text-center text-lg text-gray-700">No upcoming events at this time.</p>
+          <div className="flex items-center space-x-4">
+            <button onClick={() => changeMonth("prev")} className="p-2 rounded hover:bg-gray-200">
+              &lt;
+            </button>
+            <span className="text-lg font-semibold">
+              {months[selectedMonth]} {selectedYear}
+            </span>
+            <button onClick={() => changeMonth("next")} className="p-2 rounded hover:bg-gray-200">
+              &gt;
+            </button>
+          </div>
+        </div>
+
+        {/* Calendar View */}
+        {activeView === "calendar" && (
+          <div className="bg-white rounded-lg shadow overflow-hidden mb-12">
+            <div className="grid grid-cols-7 bg-gray-100 border-b">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                <div key={day} className="py-3 text-center text-sm font-medium text-gray-600">
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-px bg-gray-200">{renderCalendarDays()}</div>
+          </div>
+        )}
+
+        {/* Grid View */}
+        {activeView === "grid" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(activeView === "calendar" ? dayEvents : monthEvents).map(event => {
+              const today = new Date();
+              const startDate = new Date(event.start_date);
+              const endDate = new Date(event.end_date);
+              const isToday = today.toDateString() === startDate.toDateString();
+              const label = isToday ? "Happening Now" : "Upcoming";
+              return <EventCard key={event.id} event={{ ...event, label }} />;
+            })}
+          </div>
         )}
       </div>
     </motion.section>

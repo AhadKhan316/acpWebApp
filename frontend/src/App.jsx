@@ -143,7 +143,7 @@ const App = () => {
         
         {/* ACP Sub Pages */}
         <Route path="/initiatives" element={<Initiatives />} />
-        <Route path="/upcomingEvents" element={<UpcomingEventsPage />}></Route>
+        <Route path="/events" element={<UpcomingEventsPage />}></Route>
         <Route path="/sovapa/:department" element={<SovapaCoursePage />}></Route>
         <Route path="/facilities/:venueId" element={<VenueSubPage />} />
         
