@@ -170,7 +170,7 @@ const Navbar = () => {
           <img 
             src={acpLogo} 
             alt="Arts Council Logo" 
-            className="h-16 sm:h-16 md:h-14 w-auto object-contain transition-transform duration-200 hover:scale-105" 
+            className="h-24 sm:h-24 md:h-24 w-auto object-contain transition-transform duration-200 hover:scale-105" 
           />
         </Link>
 
