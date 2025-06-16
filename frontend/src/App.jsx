@@ -62,6 +62,9 @@ import ProfilePage from "./Pages/Profile";
 import ResetPassword from "./Pages/ResetPassword";
 import AdminUploadEvent from "./Pages/AdminUploadEvent"
 
+import TicketPurchaseModal from "./components/TicketPurchaseModal";
+
+
 const App = () => {
   return (
     <>
@@ -83,6 +86,10 @@ const App = () => {
               <OurSponsors />
             </>
           } />
+
+
+          <Route path="/my-tickets" element={<TicketPurchaseModal/>} />
+
 
           <Route path="/initiatives" element={<Initiatives />} />
           <Route path="/events" element={<UpcomingEventsPage />} />
@@ -137,6 +144,10 @@ const App = () => {
         <Route path="/alumni" element={<Navigate to="/festival/aaf" />} />
         <Route path="/alumni.php" element={<AlumniRedirect />} />
         <Route path="/email" element={<Email />} />
+
+        <Route path="/book-tickets" element={<TicketPurchaseModal/>} />
+
+
       </Routes>
     </>
   );
