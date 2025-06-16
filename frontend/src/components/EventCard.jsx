@@ -1,29 +1,41 @@
+import { useEffect, useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
-import { markAttendance } from "../services/attendanceService";
+import { markAttendance, getUserAttendance } from "../services/attendanceService";
 import { Calendar, Clock, MapPin } from "lucide-react";
-// import { toast } from "react-hot-toast";
+import BuyTicketsModal from "./BuyTicketsModal";
 
 const EventCard = ({ event, session }) => {
-  const handleAttend = async () => {
-    if (!session?.user) {
-      toast.error("Please log in to register.");
+  const [status, setStatus] = useState(null); // 'interested' | 'going' | null
+  const [showModal, setShowModal] = useState(false);
+  const userId = session?.user?.id;
+
+  const formattedDate = new Date(event.start_date);
+
+  useEffect(() => {
+    if (userId && event.id && event.type === "free") {
+      getUserAttendance(userId, event.id).then(setStatus);
+    }
+  }, [userId, event.id, event.type]);
+
+  const handleStatus = async (type) => {
+    if (!userId) {
+      alert("Please log in to continue.");
       window.location.href = "/login";
       return;
     }
 
     try {
-      await markAttendance(session.user.id, event.id);
-      toast.success("You are marked as attending!");
+      await markAttendance(userId, event.id, type);
+      setStatus(type);
+      alert(`Marked as "${type}"`);
     } catch (err) {
-      toast.error("You've already registered for this event.");
+      alert("Something went wrong.");
     }
   };
 
-  const formattedDate = new Date(event.start_date);
-
   return (
     <div className="flex flex-col md:flex-row bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-      {/* Image Section - Same Structure */}
+      {/* Image */}
       <div className="md:w-1/2 w-full h-48 md:h-auto">
         <img
           src={event.image_url || "/placeholder-event.jpg"}
@@ -32,7 +44,7 @@ const EventCard = ({ event, session }) => {
         />
       </div>
 
-      {/* Content Section - Same Structure */}
+      {/* Content */}
       <div className="flex flex-col justify-between md:w-1/2 w-full p-5">
         <div className="flex justify-between items-start">
           <span className="bg-red-600/90 text-white text-xs px-3 py-1 rounded-full font-medium">
@@ -81,30 +93,63 @@ const EventCard = ({ event, session }) => {
 
         <div>
           {event.type === "free" ? (
-            session?.user ? (
-              <button
-                onClick={handleAttend}
-                className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-              >
-                I'm Attending
-              </button>
+            userId ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleStatus("interested")}
+                  className={`w-1/2 px-4 py-2 text-sm rounded-md ${
+                    status === "interested"
+                      ? "bg-yellow-500 text-white"
+                      : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                  }`}
+                >
+                  Interested
+                </button>
+                <button
+                  onClick={() => handleStatus("going")}
+                  className={`w-1/2 px-4 py-2 text-sm rounded-md ${
+                    status === "going"
+                      ? "bg-green-600 text-white"
+                      : "bg-green-100 text-green-800 hover:bg-green-200"
+                  }`}
+                >
+                  Going
+                </button>
+              </div>
             ) : (
               <a
                 href="/login"
-                className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-block text-center"
+                className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md inline-block text-center"
               >
                 Register Yourself
               </a>
             )
           ) : (
-            <a
-              href={event.tickets_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-block text-center"
+            userId ? (
+              <>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+                >
+                  Buy Tickets
+                </button>
+                {showModal && (
+                  <BuyTicketsModal
+                    event={event}
+                    user={session.user}
+                    onClose={() => setShowModal(false)}
+                  />
+                )}
+              </>
+            ) : (
+              <button
+              onClick={() => document.getElementById("open-auth-modal")?.click()}
+              className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md inline-block text-center"
             >
-              Get Tickets
-            </a>
+              Register Yourself
+            </button>
+            
+            )
           )}
         </div>
       </div>
