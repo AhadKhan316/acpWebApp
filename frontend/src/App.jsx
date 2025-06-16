@@ -64,7 +64,7 @@ import AdminUploadEvent from "./Pages/AdminUploadEvent"
 
 import TicketPurchaseModal from "./components/TicketPurchaseModal";
 
-import TicketBookingPage from "./Pages/TicketBooking";
+import TicketBooking from './Pages/TicketBooking';
 
 
 const App = () => {
@@ -91,7 +91,8 @@ const App = () => {
 
 
           <Route path="/my-tickets" element={<TicketPurchaseModal/>} />
-          <Route path="/ticket-booking" element={<TicketBookingPage/>} />
+          <Route path="/ticket-booking/:id" element={<TicketBooking />} />
+
 
 
           <Route path="/initiatives" element={<Initiatives />} />
