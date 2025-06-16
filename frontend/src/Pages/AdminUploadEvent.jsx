@@ -32,7 +32,10 @@ const AdminUploadEvent = () => {
   }, []);
 
   const fetchEvents = async () => {
-    const { data, error } = await supabase.from("events").select("*").order("start_date", { ascending: false });
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("start_date", { ascending: false });
     if (!error) setEvents(data);
   };
 
@@ -68,6 +71,11 @@ const AdminUploadEvent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.image_url) {
+      setStatus({ loading: false, error: "Please upload an event image.", success: false });
+      return;
+    }
+
     setStatus({ loading: true, error: "", success: false });
 
     const payload = {
@@ -91,7 +99,11 @@ const AdminUploadEvent = () => {
   };
 
   const handleEdit = (event) => {
-    setForm(event);
+    setForm({
+      ...event,
+      price: event.price || 0,
+      priority: event.priority || 99,
+    });
     setEditingId(event.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -99,13 +111,23 @@ const AdminUploadEvent = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       const { error } = await supabase.from("events").delete().eq("id", id);
-      if (!error) fetchEvents();
+      if (error) {
+        alert("Failed to delete event: " + error.message);
+      } else {
+        fetchEvents();
+      }
     }
+  };
+
+  const handleClearImage = () => {
+    setForm((prev) => ({ ...prev, image_url: "" }));
   };
 
   return (
     <div className="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-6 text-center">{editingId ? "Update Event" : "Upload New Event"}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">
+        {editingId ? "Update Event" : "Upload New Event"}
+      </h2>
 
       {status.success && <p className="text-green-600 mb-4">Event {editingId ? "updated" : "uploaded"} successfully!</p>}
       {status.error && <p className="text-red-600 mb-4">{status.error}</p>}
@@ -117,8 +139,15 @@ const AdminUploadEvent = () => {
         <div>
           <label className="block mb-1 font-medium">Upload Image</label>
           <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full" />
-          {uploadingImg && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
-          {form.image_url && <img src={form.image_url} alt="Event" className="w-full max-h-60 mt-2 rounded" />}
+          {uploadingImg && <p className="text-sm text-gray-600 mt-1">Uploading image...</p>}
+          {form.image_url && (
+            <>
+              <img src={form.image_url} alt="Event" className="w-full max-h-60 mt-2 rounded" />
+              <button type="button" onClick={handleClearImage} className="text-red-500 text-sm underline mt-1">
+                Remove current image
+              </button>
+            </>
+          )}
         </div>
 
         <input name="start_date" type="date" value={form.start_date} onChange={handleChange} required className="w-full p-2 border rounded" />
