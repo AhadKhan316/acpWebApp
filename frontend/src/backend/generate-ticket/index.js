@@ -3,9 +3,10 @@ import { useSession } from "@supabase/auth-helpers-react";
 
 // Setup Supabase
 const supabase = createClient(
-  'https://<your-project-id>.supabase.co',
-  'your-supabase-service-role-key'
-);
+    process.env.VITE_SUPABASE_URL,
+    process.env.VITE_SUPABASE_SERVICE_KEY
+  );
+  
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

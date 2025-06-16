@@ -1,80 +1,77 @@
+// /src/api/create-order/index.js
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 
-// Supabase client setup
 const supabase = createClient(
-  'https://<your-project-id>.supabase.co', // Replace with your Supabase URL
-  'your-supabase-service-role-key'         // Keep this private
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_SERVICE_KEY
 );
 
-// PayPro credentials
-const CLIENT_ID = 'your-client-id';
-const CLIENT_SECRET = 'your-client-secret';
-const MERCHANT_ID = 'your-merchant-id'; // You received this from PayPro
+const CLIENT_ID = process.env.VITE_PAYPRO_CLIENT_ID;
+const CLIENT_SECRET = process.env.VITE_PAYPRO_CLIENT_SECRET;
+const MERCHANT_ID = process.env.VITE_PAYPRO_MERCHANT_ID;
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { user_id, event_id, amount, customerName, customerEmail, customerMobile } = req.body;
-
-  if (!user_id || !event_id || !amount) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
+export async function POST(req) {
   try {
+    const body = await req.json();
+    const { user_id, event_id, amount, customerName, customerEmail, customerMobile } = body;
+
+    if (!user_id || !event_id || !amount) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
+    }
+
     // Step 1: Authenticate with PayPro
-    const authResponse = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
+    const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
       clientid: CLIENT_ID,
-      clientsecret: CLIENT_SECRET
+      clientsecret: CLIENT_SECRET,
     });
 
-    const token = authResponse.data?.token;
-    if (!token) throw new Error('No token from PayPro');
+    const token = authRes.data?.token;
+    if (!token) throw new Error('Token not received from PayPro');
 
     // Step 2: Create Order
     const orderNumber = `INV-${Date.now()}`;
-
     const orderPayload = [
       { MerchantId: MERCHANT_ID },
       {
         OrderNumber: orderNumber,
         OrderAmount: amount.toString(),
-        OrderDueDate: "31/12/2025",
+        OrderDueDate: "31/12/2025", // You can also make this dynamic
         OrderType: "Service",
         IssueDate: new Date().toLocaleDateString('en-GB'),
         OrderExpireAfterSeconds: "0",
         CustomerName: customerName || "Guest",
         CustomerMobile: customerMobile || "",
         CustomerEmail: customerEmail || "",
-        CustomerAddress: ""
+        CustomerAddress: "",
       }
     ];
 
-    const orderRes = await axios.post('https://api.paypro.com.pk/v2/ppro/co', orderPayload, {
-      headers: { token }
+    const orderResponse = await axios.post("https://api.paypro.com.pk/v2/ppro/co", orderPayload, {
+      headers: { token },
     });
 
-    const invoiceUrl = orderRes.data?.InvoiceLink;
-    if (!invoiceUrl) throw new Error('No invoice link from PayPro');
+    const invoiceUrl = orderResponse.data?.InvoiceLink;
+    if (!invoiceUrl) throw new Error("Invoice link not returned from PayPro");
 
-    // Step 3: Save Order in Supabase
-    const { error: insertError } = await supabase.from('ticket_orders').insert([
+    // Step 3: Save to Supabase
+    const { error: insertError } = await supabase.from("ticket_orders").insert([
       {
         user_id,
         event_id,
         order_number: orderNumber,
         amount,
-        status: 'pending',
-        invoice_url: invoiceUrl
-      }
+        status: "pending",
+        invoice_url: invoiceUrl,
+      },
     ]);
-
     if (insertError) throw insertError;
 
-    // Step 4: Return invoice link
-    return res.status(200).json({ invoiceUrl });
+    // Step 4: Return invoice link to frontend
+    return new Response(JSON.stringify({ invoiceUrl }), { status: 200 });
+
   } catch (error) {
-    console.error('Create order error:', error);
-    return res.status(500).json({ error: 'Could not create order' });
+    console.error("Create order error:", error);
+    return new Response(JSON.stringify({ error: "Could not create order" }), { status: 500 });
   }
 }
