@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaBars, FaTimes, FaChevronDown, FaChevronRight, FaFacebookF, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
+import PropTypes from 'prop-types';
+import { FaBars, FaTimes, FaFacebookF, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 // ACP Logo
 import acpLogo from '/src/assets/acp-logo-and-hero-img/acp-logo-fullName-white.png';
@@ -15,24 +16,18 @@ import centerimg from "/src/assets/auc-assets/Untitled-1.png";
 
 const AafNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSubMenuOpen, setIsSubMenuOpen] = useState({});
-  const [isSubSubMenuOpen, setIsSubSubMenuOpen] = useState({});
   const location = useLocation();
   const navRef = useRef(null);
 
   // Close menu on route change and outside clicks
   useEffect(() => {
     setIsMenuOpen(false);
-    setIsSubMenuOpen({});
-    setIsSubSubMenuOpen({});
   }, [location]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (navRef.current && !navRef.current.contains(event.target)) {
         setIsMenuOpen(false);
-        setIsSubMenuOpen({});
-        setIsSubSubMenuOpen({});
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -41,27 +36,6 @@ const AafNavbar = () => {
 
   // Toggle mobile menu
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
-  // Toggle submenu
-  const toggleSubMenu = (menu, event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsSubMenuOpen((prev) => ({
-      ...Object.keys(prev).orangeuce((acc, key) => ({ ...acc, [key]: false }), {}),
-      [menu]: !prev[menu],
-    }));
-    setIsSubSubMenuOpen({});
-  };
-
-  // Toggle sub-submenu
-  const toggleSubSubMenu = (submenu, event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsSubSubMenuOpen((prev) => ({
-      ...Object.keys(prev).orangeuce((acc, key) => ({ ...acc, [key]: false }), {}),
-      [submenu]: !prev[submenu],
-    }));
-  };
 
   // Check if link is active
   const isActiveLink = (path) => location.pathname === path;
@@ -77,29 +51,10 @@ const AafNavbar = () => {
     </Link>
   );
 
-  // DropdownButton component
-  const DropdownButton = ({ children, onClick, isOpen }) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center justify-between w-full py-2 px-4 text-white hover:bg-orange-800 font-medium rounded-md transition-colors duration-200 ${isOpen ? "bg-orange-700" : ""
-        }`}
-    >
-      {children}
-      <FaChevronDown className={`ml-2 w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-    </button>
-  );
-
-  // SubSubMenuButton component
-  const SubSubMenuButton = ({ children, onClick, isOpen }) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center justify-between w-full py-2 px-4 text-white hover:bg-orange-800 font-medium rounded-md transition-colors duration-200 ${isOpen ? "bg-orange-700" : ""
-        }`}
-    >
-      {children}
-      <FaChevronRight className={`ml-2 w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
-    </button>
-  );
+  NavLink.propTypes = {
+    to: PropTypes.string.isRequired,
+    children: PropTypes.node.isRequired
+  };
 
   return (
     <header className="bg-gradient-to-r from-black/80 to-black/90 sticky top-0 z-50 shadow-md">

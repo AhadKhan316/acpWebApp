@@ -149,7 +149,7 @@ const App = () => {
         <Route path="/alumni.php" element={<AlumniRedirect />} />
         <Route path="/email" element={<Email />} />
 
-        <Route path="/book-tickets" element={<TicketPurchaseModal/>} />
+        
 
 
       </Routes>

@@ -1,100 +1,100 @@
 // src/Pages/TicketBooking.jsx
-import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "../services/supabaseClient";
+import axios from "axios";
 
-const TicketBookingPage = () => {
+const TicketBooking = () => {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [ticketCount, setTicketCount] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [user, setUser] = useState(null);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
-      const { data, error } = await supabase.from('events').select('*').eq('id', id).single();
-      if (error) {
-        toast.error('Error fetching event');
-      } else {
-        setEvent(data);
-      }
+      if (!id) return;
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) setError(error.message);
+      else setEvent(data);
       setLoading(false);
     };
+
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) setUser(session.user);
+    };
+
     fetchEvent();
+    fetchUser();
   }, [id]);
 
-  const handlePayNow = async () => {
-    if (!event) return;
-    if (ticketCount < 1 || ticketCount > 10) {
-      toast.error('Select between 1 and 10 tickets');
-      return;
-    }
-
-    setIsProcessing(true);
-
+  const handlePayment = async () => {
+    if (!user || !event) return;
+    setPaying(true);
     try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) {
-        toast.error('You must be logged in');
-        setIsProcessing(false);
-        return;
-      }
-
-      const res = await axios.post('/api/create-order', {
+      const response = await axios.post("/api/create-order", {
         user_id: user.id,
         event_id: event.id,
         amount: event.price * ticketCount,
-        customerName: user.user_metadata?.full_name || 'Guest',
+        customerName: user.user_metadata?.full_name || "Guest",
         customerEmail: user.email,
-        customerMobile: '',
+        customerMobile: ""
       });
 
-      const { invoiceUrl } = res.data;
+      const invoiceUrl = response.data?.invoiceUrl;
+      if (!invoiceUrl) throw new Error("No invoice link");
+
       window.location.href = invoiceUrl;
     } catch (err) {
-      toast.error('Could not retrieve payment link');
-      console.error(err);
+      console.error("Payment error:", err);
+      alert("Payment failed. Please try again later.");
     } finally {
-      setIsProcessing(false);
+      setPaying(false);
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading event details...</div>;
-  if (!event) return <div className="p-10 text-center text-red-600">Event not found.</div>;
+  if (loading) return <p className="text-center mt-10">Loading event...</p>;
+  if (error || !event) return <p className="text-center text-red-600">{error || "Event not found."}</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow mt-10">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Book Tickets: {event.title}</h1>
+    <div className="max-w-xl mx-auto p-6 mt-10 bg-white rounded shadow">
+      <h2 className="text-2xl font-bold mb-4">Book Tickets for {event.title}</h2>
 
-      <img
-        src={event.image_url || '/placeholder-event.jpg'}
-        alt={event.title}
-        className="w-full h-64 object-cover rounded mb-4"
+      <p className="mb-2"><strong>Date:</strong> {new Date(event.start_date).toLocaleDateString()}</p>
+      <p className="mb-2"><strong>Time:</strong> {event.time}</p>
+      <p className="mb-4"><strong>Price per Ticket:</strong> Rs. {event.price}</p>
+
+      <label className="block mb-2 font-medium">Number of Tickets</label>
+      <input
+        type="number"
+        value={ticketCount}
+        onChange={(e) => setTicketCount(Math.max(1, Math.min(10, parseInt(e.target.value))))}
+        min={1}
+        max={10}
+        className="w-full border px-3 py-2 rounded mb-4"
       />
 
-      <p className="text-gray-700 mb-2">Price: Rs. {event.price}</p>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Select Ticket Quantity</label>
-      <select
-        className="border rounded px-3 py-2 mb-4 w-full"
-        value={ticketCount}
-        onChange={(e) => setTicketCount(Number(e.target.value))}
-      >
-        {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-          <option key={num} value={num}>{num}</option>
-        ))}
-      </select>
-
-      <button
-        onClick={handlePayNow}
-        disabled={isProcessing}
-        className="w-full bg-red-600 text-white py-3 rounded hover:bg-red-700 disabled:opacity-50"
-      >
-        {isProcessing ? 'Processing...' : `Pay Rs. ${event.price * ticketCount}`}
-      </button>
+      {user ? (
+        <button
+          onClick={handlePayment}
+          disabled={paying}
+          className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition"
+        >
+          {paying ? "Processing..." : `Pay Rs. ${event.price * ticketCount} Now`}
+        </button>
+      ) : (
+        <p className="text-center text-gray-600">Please sign in to purchase tickets.</p>
+      )}
     </div>
   );
 };
 
-export default TicketBookingPage;
+export default TicketBooking;

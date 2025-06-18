@@ -133,7 +133,7 @@ const AlumniPage = () => {
             <span className="text-sm font-medium text-gray-600">Filters:</span>
             {searchTerm && (
               <span className="bg-gray-100 px-3 py-1 rounded-full text-sm flex items-center">
-                Search: "{searchTerm}"
+                Search: &ldquo;{searchTerm}&rdquo;
                 <button
                   onClick={() => setSearchTerm('')}
                   className="ml-1.5 text-gray-500 hover:text-gray-700"
