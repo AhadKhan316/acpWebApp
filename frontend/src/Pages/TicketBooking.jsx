@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import axios from "axios";
@@ -6,6 +6,7 @@ import { supabase } from "../services/supabaseClient";
 
 const TicketBooking = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const session = useSession();
   const [event, setEvent] = useState(null);
   const [ticketCount, setTicketCount] = useState(1);
@@ -34,7 +35,7 @@ const TicketBooking = () => {
 
   const handlePayNow = async () => {
     if (!session?.user) {
-      window.location.href = "/login";
+      navigate("/login");
       return;
     }
 
@@ -43,8 +44,8 @@ const TicketBooking = () => {
       return;
     }
 
-    if (!customerMobile || customerMobile.length < 10) {
-      setError("Please enter a valid mobile number.");
+    if (!customerMobile || !/^03\d{9}$/.test(customerMobile)) {
+      setError("Please enter a valid mobile number (e.g. 03001234567).");
       return;
     }
 
@@ -52,24 +53,24 @@ const TicketBooking = () => {
     setError("");
 
     try {
-      const response = await axios.post("/api/create-order", {
-        user_id: session.user.id,
-        event_id: event.id,
-        amount: ticketCount * event.price,
-        customerName: session.user.user_metadata?.full_name || "Guest",
-        customerEmail: session.user.email,
-        customerMobile
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/create-order`,
+        {
+          user_id: session.user.id,
+          event_id: event.id,
+          amount: ticketCount * event.price,
+          customerName: session.user.user_metadata?.full_name || "Guest",
+          customerEmail: session.user.email,
+          customerMobile
+        }
+      );
 
       const { invoiceUrl, orderNumber } = response.data;
 
       if (invoiceUrl && orderNumber) {
-        // Save order number to localStorage or session
-        localStorage.setItem('last_order_number', orderNumber);
+        localStorage.setItem("last_order_number", orderNumber);
         window.location.href = invoiceUrl;
-      }
-       else {
-        console.error("Missing invoice URL:", response.data);
+      } else {
         throw new Error("No invoice link returned. Please try again.");
       }
     } catch (err) {
@@ -80,16 +81,16 @@ const TicketBooking = () => {
     }
   };
 
-  if (!event) return <p>Loading event...</p>;
+  if (!event && !error) return <p className="text-center mt-10">Loading event...</p>;
 
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white p-6 rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">{event.title}</h2>
-      <p className="text-gray-600 mb-2">{event.description}</p>
-      <p className="text-gray-800 mb-2">Price per Ticket: Rs. {event.price}</p>
+      <h2 className="text-2xl font-bold mb-4">{event?.title}</h2>
+      <p className="text-gray-600 mb-2">{event?.description}</p>
+      <p className="text-gray-800 mb-2">Price per Ticket: Rs. {event?.price}</p>
 
       <div className="flex items-center gap-4 mb-4">
-        <label>Tickets:</label>
+        <label className="text-sm font-medium">Tickets:</label>
         <input
           type="number"
           min="1"
@@ -104,7 +105,7 @@ const TicketBooking = () => {
 
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Mobile Number (e.g. 03001234567)
+          Mobile Number <span className="text-gray-500">(e.g. 03001234567)</span>
         </label>
         <input
           type="tel"
@@ -122,7 +123,7 @@ const TicketBooking = () => {
         disabled={loading}
         className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 w-full"
       >
-        {loading ? "Processing..." : "Pay Now"}
+        {loading ? "Processing Payment..." : "Pay Now"}
       </button>
     </div>
   );
