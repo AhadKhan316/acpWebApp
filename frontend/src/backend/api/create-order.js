@@ -27,23 +27,18 @@ export default async function handler(req, res) {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET
     });
-
+    
     const token = authRes.data?.data?.token;
-    if (!token) throw new Error("Authentication failed. Token not received.");
-
-    // 2. Generate Order
-    const orderNumber = `INV-${Date.now()}`;
-    const issueDate = new Date();
-    const issueDateStr = issueDate.toLocaleDateString('en-GB'); // DD/MM/YYYY
-
+    if (!token) throw new Error("Authentication failed");
+    
     const orderPayload = [
       { MerchantId: MERCHANT_ID },
       {
         OrderNumber: orderNumber,
         OrderAmount: amount.toString(),
-        OrderDueDate: "31/12/2025", // You can also dynamically set this
+        OrderDueDate: "31/12/2025",
         OrderType: "Service",
-        IssueDate: issueDateStr,
+        IssueDate: new Date().toLocaleDateString("en-GB"),
         OrderExpireAfterSeconds: "0",
         CustomerName: customerName || "Guest",
         CustomerMobile: customerMobile || "",
@@ -51,12 +46,13 @@ export default async function handler(req, res) {
         CustomerAddress: ""
       }
     ];
-
+    
     const orderResponse = await axios.post('https://api.paypro.com.pk/v2/ppro/co', orderPayload, {
       headers: { token }
     });
-
-    console.log("PayPro Response:", orderResponse.data);
+    
+    console.log("🧾 PayPro Response:", JSON.stringify(orderResponse.data, null, 2));
+    
 
     const invoiceUrl = orderResponse.data?.InvoiceLink;
     if (!invoiceUrl) {
@@ -77,8 +73,7 @@ export default async function handler(req, res) {
 
     if (insertError) throw insertError;
 
-    return res.status(200).json({ invoiceUrl });
-
+    return res.status(200).json({ invoiceUrl, orderNumber });
   } catch (error) {
     console.error("Payment error:", error);
     return res.status(500).json({ error: error.message || 'Payment failed' });
