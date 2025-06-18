@@ -11,7 +11,9 @@ const CLIENT_SECRET = process.env.PAYPRO_CLIENT_SECRET;
 const MERCHANT_ID = process.env.PAYPRO_MERCHANT_ID;
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const { user_id, event_id, amount, customerName, customerEmail, customerMobile } = req.body;
 
@@ -20,25 +22,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Authenticate
+    // 1. Authenticate with PayPro
     const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
-      clientid: CLIENT_ID,
-      clientsecret: CLIENT_SECRET
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET
     });
 
-    const token = authRes.data?.token;
-    if (!token) throw new Error("Token not received");
+    const token = authRes.data?.data?.token;
+    if (!token) throw new Error("Authentication failed. Token not received.");
 
-    // 2. Generate order
+    // 2. Generate Order
     const orderNumber = `INV-${Date.now()}`;
+    const issueDate = new Date();
+    const issueDateStr = issueDate.toLocaleDateString('en-GB'); // DD/MM/YYYY
+
     const orderPayload = [
       { MerchantId: MERCHANT_ID },
       {
         OrderNumber: orderNumber,
         OrderAmount: amount.toString(),
-        OrderDueDate: "31/12/2025",
+        OrderDueDate: "31/12/2025", // You can also dynamically set this
         OrderType: "Service",
-        IssueDate: new Date().toLocaleDateString("en-GB"),
+        IssueDate: issueDateStr,
         OrderExpireAfterSeconds: "0",
         CustomerName: customerName || "Guest",
         CustomerMobile: customerMobile || "",
@@ -51,13 +56,14 @@ export default async function handler(req, res) {
       headers: { token }
     });
 
+    console.log("PayPro Response:", orderResponse.data);
+
     const invoiceUrl = orderResponse.data?.InvoiceLink;
     if (!invoiceUrl) {
-      console.error("PayPro Response:", orderResponse.data);
-      throw new Error("No invoice link");
+      throw new Error("No invoice link returned by PayPro.");
     }
 
-    // 3. Save in Supabase
+    // 3. Save Order in Supabase
     const { error: insertError } = await supabase.from("ticket_orders").insert([
       {
         user_id,
@@ -72,6 +78,7 @@ export default async function handler(req, res) {
     if (insertError) throw insertError;
 
     return res.status(200).json({ invoiceUrl });
+
   } catch (error) {
     console.error("Payment error:", error);
     return res.status(500).json({ error: error.message || 'Payment failed' });

@@ -65,6 +65,7 @@ import AdminUploadEvent from "./Pages/AdminUploadEvent"
 import TicketPurchaseModal from "./components/TicketPurchaseModal";
 
 import TicketBooking from './Pages/TicketBooking';
+import TicketSuccess from "./Pages/TicketSuccess";
 
 
 const App = () => {
@@ -92,6 +93,7 @@ const App = () => {
 
           <Route path="/my-tickets" element={<TicketPurchaseModal/>} />
           <Route path="/ticket-booking/:id" element={<TicketBooking />} />
+          <Route path="/ticket-success/:orderNumber" element={<TicketSuccess />} />
 
 
 
