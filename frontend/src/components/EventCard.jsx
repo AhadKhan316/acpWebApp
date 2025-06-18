@@ -11,6 +11,7 @@ const EventCard = ({ event }) => {
   const handleAttend = async () => {
     if (!session?.user) {
       toast.error("Please log in to register.");
+      navigate("/userportal/login");
       return;
     }
 
@@ -25,6 +26,7 @@ const EventCard = ({ event }) => {
   const handleBuyTickets = () => {
     if (!session?.user) {
       toast.error("Please log in to purchase tickets.");
+      navigate("/userportal/login");
       return;
     }
 
@@ -97,13 +99,20 @@ const EventCard = ({ event }) => {
             >
               I'm Attending
             </button>
-          ) : (
+          ) : session?.user ? (
             <button
               onClick={handleBuyTickets}
               className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
             >
-              Get Tickets
+              Buy Ticket
             </button>
+          ) : (
+            <a
+              href={`/ticket-booking/${event.id}`}
+              className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-md inline-block text-center"
+            >
+              Buy Ticket
+            </a>
           )}
         </div>
       </div>
