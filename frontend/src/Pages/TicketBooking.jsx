@@ -2,6 +2,8 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import axios from "axios";
+import { supabase } from "../services/supabaseClient";
+
 
 const TicketBooking = () => {
   const { id } = useParams();
