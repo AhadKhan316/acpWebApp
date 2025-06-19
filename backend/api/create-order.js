@@ -1,79 +1,125 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
-// 🧠 Supabase client (Service Role for insert)
+// Initialize Supabase client
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// 🧾 PayPro credentials
-const CLIENT_ID = process.env.PAYPRO_CLIENT_ID;
-const CLIENT_SECRET = process.env.PAYPRO_CLIENT_SECRET;
-const MERCHANT_ID = process.env.PAYPRO_MERCHANT_ID;
+// PayPro credentials from environment
+const {
+  PAYPRO_CLIENT_ID: CLIENT_ID,
+  PAYPRO_CLIENT_SECRET: CLIENT_SECRET,
+  PAYPRO_MERCHANT_ID: MERCHANT_ID
+} = process.env;
+
+// Utility function for date formatting
+const formatDate = (date = new Date()) => {
+  const d = new Date(date);
+  return [
+    d.getDate().toString().padStart(2, '0'),
+    (d.getMonth() + 1).toString().padStart(2, '0'),
+    d.getFullYear()
+  ].join('/');
+};
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      error: 'Method not allowed',
+      allowedMethods: ['POST'] 
+    });
+  }
+
+  // Validate required fields
+  const requiredFields = ['user_id', 'event_id', 'amount'];
+  const missingFields = requiredFields.filter(field => !req.body[field]);
+
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      error: 'Missing required fields',
+      missingFields,
+      receivedBody: req.body
+    });
+  }
 
   const {
     user_id,
     event_id,
     amount,
-    customerName,
-    customerEmail,
-    customerMobile
+    customerName = 'Guest',
+    customerEmail = '',
+    customerMobile = ''
   } = req.body;
 
-  if (!user_id || !event_id || !amount) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
   try {
-    // ✅ Step 1: Authenticate with PayPro
+    console.log('Starting order creation for user:', user_id);
+
+    // 1. Authenticate with PayPro
+    console.log('Authenticating with PayPro...');
     const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET
+    }).catch(err => {
+      throw new Error(`PayPro auth failed: ${err.response?.data?.message || err.message}`);
     });
 
     const token = authRes.data?.data?.token;
-    if (!token) throw new Error("Authentication failed: token not received");
+    if (!token) {
+      throw new Error("Authentication failed: No token received from PayPro");
+    }
 
-    // ✅ Step 2: Create invoice
+    // 2. Create invoice
     const orderNumber = `INV-${Date.now()}`;
-    const issueDate = new Date().toLocaleDateString('en-GB'); // format: DD/MM/YYYY
+    const issueDate = formatDate();
+    const dueDate = formatDate(new Date().setFullYear(new Date().getFullYear() + 1));
 
-    const orderPayload = [
-      { MerchantId: MERCHANT_ID },
-      {
-        OrderNumber: orderNumber,
-        OrderAmount: amount.toString(),
-        OrderDueDate: "31/12/2025",
-        OrderType: "Service",
-        IssueDate: issueDate,
-        OrderExpireAfterSeconds: "0",
-        CustomerName: customerName || "Guest",
-        CustomerMobile: customerMobile || "",
-        CustomerEmail: customerEmail || "",
-        CustomerAddress: ""
-      }
-    ];
+    console.log('Creating PayPro invoice...');
+    const orderPayload = {
+      MerchantId: MERCHANT_ID,
+      OrderNumber: orderNumber,
+      OrderAmount: amount.toString(),
+      OrderDueDate: dueDate,
+      OrderType: "Service",
+      IssueDate: issueDate,
+      OrderExpireAfterSeconds: "0",
+      CustomerName: customerName,
+      CustomerMobile: customerMobile,
+      CustomerEmail: customerEmail,
+      CustomerAddress: ""
+    };
 
     const orderRes = await axios.post(
       'https://api.paypro.com.pk/v2/ppro/co',
       orderPayload,
       { headers: { token } }
-    );
+    ).catch(err => {
+      throw new Error(`Invoice creation failed: ${err.response?.data?.message || err.message}`);
+    });
 
     const invoiceUrl = orderRes.data?.InvoiceLink;
     if (!invoiceUrl) {
-      console.error("❌ No invoice link returned:", orderRes.data);
-      throw new Error("No invoice link returned from PayPro.");
+      console.error('PayPro response:', orderRes.data);
+      throw new Error("No invoice URL received from PayPro");
     }
 
-    // ✅ Step 3: Save order to Supabase
-    const { error: insertError } = await supabase
+    // 3. Save to Supabase
+    console.log('Saving order to Supabase...');
+    const { data, error } = await supabase
       .from('ticket_orders')
       .insert([{
         user_id,
@@ -81,19 +127,34 @@ export default async function handler(req, res) {
         order_number: orderNumber,
         amount,
         status: 'pending',
-        invoice_url: invoiceUrl
-      }]);
+        invoice_url: invoiceUrl,
+        created_at: new Date().toISOString()
+      }])
+      .select();
 
-    if (insertError) throw insertError;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
 
-    // ✅ Step 4: Return invoice URL and order number
+    console.log('Order created successfully:', orderNumber);
+
+    // 4. Return success response
     return res.status(200).json({
+      success: true,
+      orderNumber,
       invoiceUrl,
-      orderNumber
+      supabaseId: data[0]?.id
     });
 
-  } catch (err) {
-    console.error("💥 Payment error:", err.message || err);
-    return res.status(500).json({ error: err.message || 'Payment failed' });
+  } catch (error) {
+    console.error('Order creation failed:', error.message);
+    console.error(error.stack);
+
+    return res.status(500).json({
+      error: 'Order creation failed',
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    });
   }
 }
