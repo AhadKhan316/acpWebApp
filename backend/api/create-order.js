@@ -4,20 +4,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Initialize Supabase client
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// PayPro credentials from environment
 const {
   PAYPRO_CLIENT_ID: CLIENT_ID,
   PAYPRO_CLIENT_SECRET: CLIENT_SECRET,
   PAYPRO_MERCHANT_ID: MERCHANT_ID
 } = process.env;
 
-// Utility function for date formatting
 const formatDate = (date = new Date()) => {
   const d = new Date(date);
   return [
@@ -28,24 +25,15 @@ const formatDate = (date = new Date()) => {
 };
 
 export default async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      error: 'Method not allowed',
-      allowedMethods: ['POST'] 
-    });
+    return res.status(405).json({ error: 'Method not allowed', allowedMethods: ['POST'] });
   }
 
-  // Validate required fields
   const requiredFields = ['user_id', 'event_id', 'amount'];
   const missingFields = requiredFields.filter(field => !req.body[field]);
 
@@ -67,28 +55,19 @@ export default async function handler(req, res) {
   } = req.body;
 
   try {
-    console.log('Starting order creation for user:', user_id);
-
-    // 1. Authenticate with PayPro
     console.log('Authenticating with PayPro...');
     const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET
-    }).catch(err => {
-      throw new Error(`PayPro auth failed: ${err.response?.data?.message || err.message}`);
     });
 
     const token = authRes.data?.data?.token;
-    if (!token) {
-      throw new Error("Authentication failed: No token received from PayPro");
-    }
+    if (!token) throw new Error("Authentication failed: No token received from PayPro");
 
-    // 2. Create invoice
     const orderNumber = `INV-${Date.now()}`;
     const issueDate = formatDate();
     const dueDate = formatDate(new Date().setFullYear(new Date().getFullYear() + 1));
 
-    console.log('Creating PayPro invoice...');
     const orderPayload = {
       MerchantId: MERCHANT_ID,
       OrderNumber: orderNumber,
@@ -103,21 +82,19 @@ export default async function handler(req, res) {
       CustomerAddress: ""
     };
 
+    console.log('Creating PayPro invoice...');
     const orderRes = await axios.post(
       'https://api.paypro.com.pk/v2/ppro/co',
       orderPayload,
       { headers: { token } }
-    ).catch(err => {
-      throw new Error(`Invoice creation failed: ${err.response?.data?.message || err.message}`);
-    });
+    );
 
-    const invoiceUrl = orderRes.data?.InvoiceLink;
+    const invoiceUrl = orderRes.data?.data?.[0]?.InvoiceLink;
     if (!invoiceUrl) {
-      console.error('PayPro response:', orderRes.data);
+      console.error('Missing invoice URL. Full response:', orderRes.data);
       throw new Error("No invoice URL received from PayPro");
     }
 
-    // 3. Save to Supabase
     console.log('Saving order to Supabase...');
     const { data, error } = await supabase
       .from('ticket_orders')
@@ -137,9 +114,8 @@ export default async function handler(req, res) {
       throw new Error(`Database error: ${error.message}`);
     }
 
-    console.log('Order created successfully:', orderNumber);
+    console.log('✅ Order created successfully:', orderNumber);
 
-    // 4. Return success response
     return res.status(200).json({
       success: true,
       orderNumber,
@@ -148,9 +124,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Order creation failed:', error.message);
-    console.error(error.stack);
-
+    console.error('❌ Order creation failed:', error.message);
     return res.status(500).json({
       error: 'Order creation failed',
       message: error.message,

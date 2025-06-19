@@ -2,9 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 
 // Supabase client setup
 const supabase = createClient(
-  clientid: process.env.PAYPRO_CLIENT_ID,
-      clientsecret: process.env.PAYPRO_CLIENT_SECRET,       // Keep this private
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+      // Keep this private
+
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

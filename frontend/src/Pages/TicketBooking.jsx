@@ -8,6 +8,7 @@ const TicketBooking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const session = useSession();
+
   const [event, setEvent] = useState(null);
   const [ticketCount, setTicketCount] = useState(1);
   const [customerMobile, setCustomerMobile] = useState("");
@@ -15,7 +16,7 @@ const TicketBooking = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchEvent() {
+    const fetchEvent = async () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
@@ -28,26 +29,32 @@ const TicketBooking = () => {
       } else {
         setEvent(data);
       }
-    }
+    };
 
     fetchEvent();
   }, [id]);
 
-  const handlePayNow = async () => {
+  const validateForm = () => {
     if (!session?.user) {
       navigate("/login");
-      return;
+      return false;
     }
 
     if (ticketCount < 1 || ticketCount > 10) {
       setError("Ticket quantity must be between 1 and 10.");
-      return;
+      return false;
     }
 
     if (!customerMobile || !/^03\d{9}$/.test(customerMobile)) {
-      setError("Please enter a valid mobile number (e.g. 03001234567).");
-      return;
+      setError("Please enter a valid mobile number starting with 03.");
+      return false;
     }
+
+    return true;
+  };
+
+  const handlePayNow = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
     setError("");
@@ -74,8 +81,8 @@ const TicketBooking = () => {
         throw new Error("No invoice link returned. Please try again.");
       }
     } catch (err) {
-      console.error("Payment Error:", err);
-      setError(err.response?.data?.error || err.message || "Payment failed.");
+      console.error("❌ Payment Error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Payment failed. Please try again.");
     } finally {
       setLoading(false);
     }
