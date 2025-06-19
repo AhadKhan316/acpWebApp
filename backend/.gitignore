@@ -1,3 +1,0 @@
-# Ignore environment variable files
-.env
-.env.*  # optional, hides .env.local, .env.production, etc.
