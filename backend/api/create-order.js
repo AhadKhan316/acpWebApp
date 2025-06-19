@@ -88,7 +88,6 @@ export default async function handler(req, res) {
       orderPayload,
       { headers: { token } }
     );
-
     const invoiceUrl = orderRes.data?.data?.[0]?.InvoiceLink;
     if (!invoiceUrl) {
       console.error('Missing invoice URL. Full response:', orderRes.data);
@@ -120,8 +119,10 @@ export default async function handler(req, res) {
       success: true,
       orderNumber,
       invoiceUrl,
+      rawPaypro: orderRes.data,
       supabaseId: data[0]?.id
     });
+    
 
   } catch (error) {
     console.error('❌ Order creation failed:', error.message);
