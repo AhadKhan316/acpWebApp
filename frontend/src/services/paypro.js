@@ -36,7 +36,7 @@ async function createPayProOrder({ orderNumber, amount, customer }) {
     },
   ];
 
-  const res = await axios.post("https://demoapi.paypro.com.pk/v2/ppro/co", payload, {
+  const res = await axios.post("https://api.paypro.com.pk/v2/ppro/co", payload, {
     headers: { token },
   });
 

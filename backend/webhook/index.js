@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Supabase client setup
 const supabase = createClient(
-  'https://<your-project-id>.supabase.co', // Replace with your Supabase URL
-  'your-supabase-service-role-key'         // Keep this private
+  clientid: process.env.PAYPRO_CLIENT_ID,
+      clientsecret: process.env.PAYPRO_CLIENT_SECRET,       // Keep this private
 );
 
 export default async function handler(req, res) {
