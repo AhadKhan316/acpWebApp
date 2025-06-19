@@ -4,17 +4,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Initialize Supabase
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Extract PayPro credentials
 const {
   PAYPRO_CLIENT_ID: CLIENT_ID,
   PAYPRO_CLIENT_SECRET: CLIENT_SECRET,
   PAYPRO_MERCHANT_ID: MERCHANT_ID
 } = process.env;
 
+// Helper to format date as DD/MM/YYYY
 const formatDate = (date = new Date()) => {
   const d = new Date(date);
   return [
@@ -34,6 +37,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', allowedMethods: ['POST'] });
   }
 
+  // Validate required body fields
   const requiredFields = ['user_id', 'event_id', 'amount'];
   const missingFields = requiredFields.filter(field => !req.body[field]);
 
@@ -55,15 +59,18 @@ export default async function handler(req, res) {
   } = req.body;
 
   try {
-    console.log('Authenticating with PayPro...');
+    console.log('🔐 Authenticating with PayPro...');
     const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET
     });
 
     const token = authRes.data?.data?.token;
-    if (!token) throw new Error("Authentication failed: No token received from PayPro");
+    if (!token) {
+      throw new Error("Authentication failed: Token missing from PayPro response.");
+    }
 
+    // Prepare order payload
     const orderNumber = `INV-${Date.now()}`;
     const issueDate = formatDate();
     const dueDate = formatDate(new Date().setFullYear(new Date().getFullYear() + 1));
@@ -82,19 +89,26 @@ export default async function handler(req, res) {
       CustomerAddress: ""
     };
 
-    console.log('Creating PayPro invoice...');
+    console.log('🧾 Creating PayPro invoice...');
     const orderRes = await axios.post(
       'https://api.paypro.com.pk/v2/ppro/co',
       orderPayload,
-      { headers: { token } }
+      {
+        headers: {
+          token
+        }
+      }
     );
+
     const invoiceUrl = orderRes.data?.data?.[0]?.InvoiceLink;
+
     if (!invoiceUrl) {
-      console.error('Missing invoice URL. Full response:', orderRes.data);
-      throw new Error("No invoice URL received from PayPro");
+      console.error('❌ PayPro InvoiceLink missing:', orderRes.data);
+      throw new Error("No invoice URL returned from PayPro.");
     }
 
-    console.log('Saving order to Supabase...');
+    // Save to Supabase
+    console.log('📥 Saving order to Supabase...');
     const { data, error } = await supabase
       .from('ticket_orders')
       .insert([{
@@ -109,27 +123,24 @@ export default async function handler(req, res) {
       .select();
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('❌ Supabase error:', error);
       throw new Error(`Database error: ${error.message}`);
     }
 
-    console.log('✅ Order created successfully:', orderNumber);
+    console.log('✅ Order successfully created:', orderNumber);
 
     return res.status(200).json({
       success: true,
       orderNumber,
       invoiceUrl,
-      rawPaypro: orderRes.data,
       supabaseId: data[0]?.id
     });
-    
 
   } catch (error) {
     console.error('❌ Order creation failed:', error.message);
     return res.status(500).json({
       error: 'Order creation failed',
-      message: error.message,
-      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      message: error.message
     });
   }
 }
