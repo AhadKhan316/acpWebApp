@@ -42,6 +42,7 @@ export default async function handler(req, res) {
   const missingFields = requiredFields.filter(field => !req.body[field]);
 
   if (missingFields.length > 0) {
+    console.warn('⚠ Missing fields:', missingFields);
     return res.status(400).json({
       error: 'Missing required fields',
       missingFields,
@@ -59,11 +60,16 @@ export default async function handler(req, res) {
   } = req.body;
 
   try {
-    console.log('🔐 Authenticating with PayPro...');
+    console.log('✅ Step 1: Authenticating with PayPro...');
+    console.log('🔑 CLIENT_ID:', CLIENT_ID);
+    console.log('🔑 CLIENT_SECRET:', CLIENT_SECRET);
+
     const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET
     });
+
+    console.log('✅ Auth Response:', authRes.data);
 
     const token = authRes.data?.data?.token;
     if (!token) {
@@ -89,7 +95,9 @@ export default async function handler(req, res) {
       CustomerAddress: ""
     };
 
-    console.log('🧾 Creating PayPro invoice...');
+    console.log('✅ Step 2: Creating PayPro Invoice...');
+    console.log('📦 Order Payload:', orderPayload);
+
     const orderRes = await axios.post(
       'https://api.paypro.com.pk/v2/ppro/co',
       orderPayload,
@@ -100,15 +108,16 @@ export default async function handler(req, res) {
       }
     );
 
-    const invoiceUrl = orderRes.data?.data?.[0]?.InvoiceLink;
+    console.log('✅ PayPro Response:', orderRes.data);
 
+    const invoiceUrl = orderRes.data?.data?.[0]?.InvoiceLink;
     if (!invoiceUrl) {
-      console.error('❌ PayPro InvoiceLink missing:', orderRes.data);
+      console.error('❌ InvoiceLink missing. Full response:', JSON.stringify(orderRes.data, null, 2));
       throw new Error("No invoice URL returned from PayPro.");
     }
 
     // Save to Supabase
-    console.log('📥 Saving order to Supabase...');
+    console.log('✅ Step 3: Saving to Supabase...');
     const { data, error } = await supabase
       .from('ticket_orders')
       .insert([{
@@ -123,11 +132,11 @@ export default async function handler(req, res) {
       .select();
 
     if (error) {
-      console.error('❌ Supabase error:', error);
+      console.error('❌ Supabase insert error:', error);
       throw new Error(`Database error: ${error.message}`);
     }
 
-    console.log('✅ Order successfully created:', orderNumber);
+    console.log('✅ Step 4: Order successfully saved:', data[0]);
 
     return res.status(200).json({
       success: true,
@@ -138,6 +147,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Order creation failed:', error.message);
+    console.error(error.stack);
     return res.status(500).json({
       error: 'Order creation failed',
       message: error.message

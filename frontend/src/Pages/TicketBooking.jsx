@@ -24,7 +24,7 @@ const TicketBooking = () => {
         .single();
 
       if (error) {
-        console.error("Event load error", error);
+        console.error("❌ Payment Error:", err.response?.data || err.message);
         setError("Event not found.");
       } else {
         setEvent(data);
