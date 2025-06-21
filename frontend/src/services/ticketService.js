@@ -1,7 +1,7 @@
 // src/services/ticketService.js
 import axios from "axios";
 
-const API_BASE = "http://localhost:5173//api"; // Your deployed backend domain
+const API_BASE = "https://aalmiurduconference.com/api"; // Your deployed backend domain
 
 export async function createTicketOrder(eventId, amount, userDetails) {
   try {
