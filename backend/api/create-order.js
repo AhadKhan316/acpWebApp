@@ -2,22 +2,28 @@ import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config(); // Load .env first
 
-// Initialize Supabase
+// Supabase client
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Extract PayPro credentials
+// Destructure required credentials
 const {
-  PAYPRO_CLIENT_ID: CLIENT_ID,
-  PAYPRO_CLIENT_SECRET: CLIENT_SECRET,
-  PAYPRO_MERCHANT_ID: MERCHANT_ID
+  PAYPRO_CLIENT_ID,
+  PAYPRO_CLIENT_SECRET,
+  PAYPRO_MERCHANT_ID
 } = process.env;
 
-// Helper to format date as DD/MM/YYYY
+// Validate .env essentials
+if (!PAYPRO_CLIENT_ID || !PAYPRO_CLIENT_SECRET || !PAYPRO_MERCHANT_ID) {
+  console.error("❌ Missing PayPro credentials in .env file.");
+  process.exit(1);
+}
+
+// Format date as DD/MM/YYYY
 const formatDate = (date = new Date()) => {
   const d = new Date(date);
   return [
@@ -34,19 +40,16 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed', allowedMethods: ['POST'] });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Validate required body fields
   const requiredFields = ['user_id', 'event_id', 'amount'];
   const missingFields = requiredFields.filter(field => !req.body[field]);
 
   if (missingFields.length > 0) {
-    console.warn('⚠ Missing fields:', missingFields);
     return res.status(400).json({
       error: 'Missing required fields',
-      missingFields,
-      receivedBody: req.body
+      missingFields
     });
   }
 
@@ -56,51 +59,49 @@ export default async function handler(req, res) {
     amount,
     customerName = 'Guest',
     customerEmail = '',
-    customerMobile = ''
+    customerMobile = '',
+    customerAddress = ''
   } = req.body;
 
   try {
-    console.log('✅ Step 1: Authenticating with PayPro...');
-    console.log('🔑 CLIENT_ID:', CLIENT_ID);
-    console.log('🔑 CLIENT_SECRET:', CLIENT_SECRET);
-
-    const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET
+    console.log("🔐 Step 1: Authenticating with PayPro...");
+    const authResponse = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
+      client_id: PAYPRO_CLIENT_ID,
+      client_secret: PAYPRO_CLIENT_SECRET
     });
 
-    console.log('✅ Auth Response:', authRes.data);
-
-    const token = authRes.data?.data?.token;
+    const token = authResponse?.data?.data?.token;
     if (!token) {
-      throw new Error("Authentication failed: Token missing from PayPro response.");
+      console.error("❌ Token missing from auth response:", authResponse.data);
+      throw new Error("PayPro Auth failed. Token not received.");
     }
 
-    // Prepare order payload
+    console.log("✅ Auth Success. Token received.");
+
+    // Step 2: Invoice creation
     const orderNumber = `INV-${Date.now()}`;
     const issueDate = formatDate();
-    const dueDate = formatDate(new Date().setFullYear(new Date().getFullYear() + 1));
+    const dueDate = formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // +1 day
 
-    const orderPayload = {
-      MerchantId: MERCHANT_ID,
+    const payload = {
+      MerchantId: PAYPRO_MERCHANT_ID,
       OrderNumber: orderNumber,
       OrderAmount: amount.toString(),
       OrderDueDate: dueDate,
       OrderType: "Service",
       IssueDate: issueDate,
-      OrderExpireAfterSeconds: "0",
+      OrderExpireAfterSeconds: "3600",
       CustomerName: customerName,
       CustomerMobile: customerMobile,
       CustomerEmail: customerEmail,
-      CustomerAddress: ""
+      CustomerAddress: customerAddress
     };
 
-    console.log('✅ Step 2: Creating PayPro Invoice...');
-    console.log('📦 Order Payload:', orderPayload);
+    console.log("📦 Step 2: Creating Invoice with payload:", payload);
 
-    const orderRes = await axios.post(
+    const invoiceResponse = await axios.post(
       'https://api.paypro.com.pk/v2/ppro/co',
-      orderPayload,
+      payload,
       {
         headers: {
           token
@@ -108,36 +109,34 @@ export default async function handler(req, res) {
       }
     );
 
-    console.log('✅ PayPro Response:', orderRes.data);
+    const invoiceUrl = invoiceResponse?.data?.data?.[0]?.InvoiceLink;
 
-    const invoiceUrl = orderRes.data?.data?.[0]?.InvoiceLink;
     if (!invoiceUrl) {
-      console.error('❌ InvoiceLink missing. Full response:', JSON.stringify(orderRes.data, null, 2));
+      console.error("❌ InvoiceLink missing. Full response:", invoiceResponse.data);
       throw new Error("No invoice URL returned from PayPro.");
     }
 
-    // Save to Supabase
-    console.log('✅ Step 3: Saving to Supabase...');
+    console.log("✅ Invoice Created. Saving to Supabase...");
+
     const { data, error } = await supabase
       .from('ticket_orders')
       .insert([{
         user_id,
         event_id,
         order_number: orderNumber,
-        amount,
-        status: 'pending',
+        amount_paid: parseFloat(amount),
+        payment_status: 'pending',
         invoice_url: invoiceUrl,
         created_at: new Date().toISOString()
       }])
       .select();
 
     if (error) {
-      console.error('❌ Supabase insert error:', error);
-      throw new Error(`Database error: ${error.message}`);
+      console.error("❌ Supabase Insert Error:", error);
+      throw new Error(`Supabase error: ${error.message}`);
     }
 
-    console.log('✅ Step 4: Order successfully saved:', data[0]);
-
+    console.log("✅ Order saved. Returning invoice URL.");
     return res.status(200).json({
       success: true,
       orderNumber,
@@ -145,12 +144,17 @@ export default async function handler(req, res) {
       supabaseId: data[0]?.id
     });
 
-  } catch (error) {
-    console.error('❌ Order creation failed:', error.message);
-    console.error(error.stack);
+  } catch (err) {
+    console.error("❌ Order creation failed:", err.message);
+    if (err.response?.data) {
+      console.error("💥 PayPro API Error:", JSON.stringify(err.response.data, null, 2));
+    }
+
     return res.status(500).json({
       error: 'Order creation failed',
-      message: error.message
+      message: err.response?.status === 406
+        ? 'PayPro rejected the invoice request (HTTP 406). Check your payload and merchant ID.'
+        : err.message
     });
   }
 }

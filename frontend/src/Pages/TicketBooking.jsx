@@ -24,7 +24,7 @@ const TicketBooking = () => {
         .single();
 
       if (error) {
-        console.error("❌ Payment Error:", err.response?.data || err.message);
+        console.error("❌ Event Load Error:", error.message);
         setError("Event not found.");
       } else {
         setEvent(data);
@@ -65,10 +65,11 @@ const TicketBooking = () => {
         {
           user_id: session.user.id,
           event_id: event.id,
-          amount: ticketCount * event.price,
+          amount: ticketCount * Number(event.price),
           customerName: session.user.user_metadata?.full_name || "Guest",
           customerEmail: session.user.email,
-          customerMobile
+          customerMobile,
+          customerAddress: "" // Optional: add if you want
         }
       );
 
@@ -81,7 +82,7 @@ const TicketBooking = () => {
         throw new Error("No invoice link returned. Please try again.");
       }
     } catch (err) {
-      console.error("❌ Payment Error:", err.response?.data || err.message);
+      console.error("❌ Payment Error:", JSON.stringify(err.response?.data || err.message, null, 2));
       setError(err.response?.data?.message || "Payment failed. Please try again.");
     } finally {
       setLoading(false);

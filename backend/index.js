@@ -17,5 +17,5 @@ app.post('/api/create-order', handleCreateOrder);
 app.post('/api/webhook', handleWebhook);
 
 app.listen(PORT, () => {
-  console.log(`🚀 API running at https://urduconference.com:${PORT}`);
+  console.log(`🚀 API running at http://localhost:5173/:${PORT}`);
 });
