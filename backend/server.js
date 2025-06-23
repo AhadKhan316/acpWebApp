@@ -33,7 +33,7 @@ app.use(express.json());
 
 // ✅ Routes
 app.post("/api/create-order", createOrderHandler);
-app.post("/api/webhook", handleWebhook); // Webhook route
+app.post('/api/webhook', express.json(), webhookHandler);
 
 app.get("/", (_, res) => res.send("✅ ACP API is running"));
 

@@ -15,6 +15,7 @@ const TicketBooking = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // ✅ Load event details
   useEffect(() => {
     const fetchEvent = async () => {
       const { data, error } = await supabase
@@ -34,6 +35,7 @@ const TicketBooking = () => {
     fetchEvent();
   }, [id]);
 
+  // ✅ Validate inputs
   const validateForm = () => {
     if (!session?.user) {
       navigate("/login");
@@ -46,13 +48,14 @@ const TicketBooking = () => {
     }
 
     if (!customerMobile || !/^03\d{9}$/.test(customerMobile)) {
-      setError("Please enter a valid mobile number (format: 03XXXXXXXXX).");
+      setError("Please enter a valid mobile number (e.g. 03001234567).");
       return false;
     }
 
     return true;
   };
 
+  // ✅ Handle Pay Now
   const handlePayNow = async () => {
     if (!validateForm()) return;
 
@@ -61,7 +64,7 @@ const TicketBooking = () => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/create-order`,
+        `https://aalmiurduconference.com/api/create-order`,
         {
           user_id: session.user.id,
           event_id: event.id,
@@ -82,19 +85,25 @@ const TicketBooking = () => {
       }
     } catch (err) {
       console.error("❌ Payment Error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Payment failed. Please try again.");
+      setError(
+        err.response?.data?.message || "Payment failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  if (!event && !error) return <p className="text-center mt-10">Loading event...</p>;
+  // ✅ UI Rendering
+  if (!event && !error)
+    return <p className="text-center mt-10">Loading event...</p>;
 
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white p-6 rounded shadow">
       <h2 className="text-2xl font-bold mb-4">{event?.title}</h2>
       <p className="text-gray-600 mb-2">{event?.description}</p>
-      <p className="text-gray-800 mb-2">Price per Ticket: Rs. {event?.price}</p>
+      <p className="text-gray-800 mb-2">
+        Price per Ticket: Rs. {event?.price}
+      </p>
 
       <div className="flex items-center gap-4 mb-4">
         <label className="text-sm font-medium">Tickets:</label>
@@ -103,7 +112,9 @@ const TicketBooking = () => {
           min="1"
           max="10"
           value={ticketCount}
-          onChange={(e) => setTicketCount(Math.max(1, Math.min(10, Number(e.target.value))))}
+          onChange={(e) =>
+            setTicketCount(Math.max(1, Math.min(10, Number(e.target.value))))
+          }
           className="border p-2 rounded w-24"
         />
       </div>
