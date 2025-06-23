@@ -1,5 +1,3 @@
-// ✅ TicketBooking.jsx (Frontend)
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
@@ -14,8 +12,8 @@ const TicketBooking = () => {
   const [event, setEvent] = useState(null);
   const [ticketCount, setTicketCount] = useState(1);
   const [customerMobile, setCustomerMobile] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -26,12 +24,12 @@ const TicketBooking = () => {
         .single();
 
       if (error) {
+        console.error("❌ Event Fetch Error:", error);
         setError("Event not found.");
       } else {
         setEvent(data);
       }
     };
-
     fetchEvent();
   }, [id]);
 
@@ -40,17 +38,14 @@ const TicketBooking = () => {
       navigate("/login");
       return false;
     }
-
     if (ticketCount < 1 || ticketCount > 10) {
-      setError("Ticket quantity must be between 1 and 10.");
+      setError("Ticket count must be between 1 and 10.");
       return false;
     }
-
-    if (!customerMobile || !/^03\d{9}$/.test(customerMobile)) {
-      setError("Please enter a valid mobile number starting with 03.");
+    if (!/^03\d{9}$/.test(customerMobile)) {
+      setError("Enter a valid mobile number (e.g., 03XXXXXXXXX)");
       return false;
     }
-
     return true;
   };
 
@@ -61,20 +56,19 @@ const TicketBooking = () => {
     setError("");
 
     try {
-      const response = await axios.post(
+      const res = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/api/create-order`,
         {
           user_id: session.user.id,
           event_id: event.id,
-          amount: ticketCount * event.price,
+          amount: event.price * ticketCount,
           customerName: session.user.user_metadata?.full_name || "Guest",
           customerEmail: session.user.email,
           customerMobile
         }
       );
-      
 
-      const { invoiceUrl, orderNumber } = response.data;
+      const { invoiceUrl, orderNumber } = res.data;
 
       if (invoiceUrl && orderNumber) {
         localStorage.setItem("last_order_number", orderNumber);
@@ -83,6 +77,7 @@ const TicketBooking = () => {
         throw new Error("No invoice link returned. Please try again.");
       }
     } catch (err) {
+      console.error("❌ Payment Error:", err.response?.data || err.message);
       setError(err.response?.data?.message || "Payment failed. Please try again.");
     } finally {
       setLoading(false);
@@ -104,14 +99,16 @@ const TicketBooking = () => {
           min="1"
           max="10"
           value={ticketCount}
-          onChange={(e) => setTicketCount(Math.max(1, Math.min(10, Number(e.target.value))))}
+          onChange={(e) =>
+            setTicketCount(Math.max(1, Math.min(10, Number(e.target.value))))
+          }
           className="border p-2 rounded w-24"
         />
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Mobile Number <span className="text-gray-500">(e.g. 03001234567)</span>
+        <label className="block text-sm font-medium mb-1">
+          Mobile Number <span className="text-gray-500">(e.g., 03001234567)</span>
         </label>
         <input
           type="tel"
@@ -129,7 +126,7 @@ const TicketBooking = () => {
         disabled={loading}
         className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 w-full"
       >
-        {loading ? "Processing Payment..." : "Pay Now"}
+        {loading ? "Processing..." : "Pay Now"}
       </button>
     </div>
   );
