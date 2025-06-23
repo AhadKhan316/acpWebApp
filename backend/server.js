@@ -1,48 +1,45 @@
-// backend/server.js
+// ✅ backend/server.js
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import createOrderHandler from "./api/create-order.js";
 import { handleWebhook } from "./api/webhook.js";
 
-dotenv.config(); // Load environment variables early
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ Allow frontend CORS for dev and production
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://aalmiurduconference.com"
-];
-
+// ✅ CORS configuration (for both local and production domains)
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: ["http://localhost:5173", "https://aalmiurduconference.com"],
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
 
-// ✅ Body parser
+// ✅ JSON parser for incoming requests
 app.use(express.json());
 
-// ✅ Routes
+// ✅ Health check route
+app.get("/", (_, res) => res.send("✅ API is running"));
+
+// ✅ PayPro invoice creation endpoint
 app.post("/api/create-order", createOrderHandler);
-app.post('/api/webhook', express.json(), webhookHandler);
 
-app.get("/", (_, res) => res.send("✅ ACP API is running"));
+// ✅ PayPro webhook callback endpoint
+app.post("/api/webhook", handleWebhook);
 
+// ✅ Catch-all error handler
 app.use((err, req, res, next) => {
-  console.error("🔥 Uncaught Server Error:", err.stack);
-  res.status(500).json({ error: "Internal Server Error", message: err.message });
+  console.error("🔥 Global Error:", err.stack);
+  res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
 // ✅ Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server is running on http://localhost:${PORT}`);
+}).on("error", (err) => {
+  console.error("❌ Server failed to start:", err);
 });
