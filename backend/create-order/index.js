@@ -3,13 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 );
 
-const CLIENT_ID = process.env.VITE_PAYPRO_CLIENT_ID;
-const CLIENT_SECRET = process.env.VITE_PAYPRO_CLIENT_SECRET;
-const MERCHANT_ID = process.env.VITE_PAYPRO_MERCHANT_ID;
+const CLIENT_ID = process.env.PAYPRO_CLIENT_ID;
+const CLIENT_SECRET = process.env.PAYPRO_CLIENT_SECRET;
+const MERCHANT_ID = process.env.PAYPRO_MERCHANT_ID;
 
 export async function POST(req) {
   try {
