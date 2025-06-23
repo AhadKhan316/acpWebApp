@@ -1,3 +1,5 @@
+// ✅ TicketBooking.jsx (Frontend)
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
@@ -24,7 +26,6 @@ const TicketBooking = () => {
         .single();
 
       if (error) {
-        console.error("❌ Event Load Error:", error.message);
         setError("Event not found.");
       } else {
         setEvent(data);
@@ -65,13 +66,13 @@ const TicketBooking = () => {
         {
           user_id: session.user.id,
           event_id: event.id,
-          amount: ticketCount * Number(event.price),
+          amount: ticketCount * event.price,
           customerName: session.user.user_metadata?.full_name || "Guest",
           customerEmail: session.user.email,
-          customerMobile,
-          customerAddress: "" // Optional: add if you want
+          customerMobile
         }
       );
+      
 
       const { invoiceUrl, orderNumber } = response.data;
 
@@ -82,7 +83,6 @@ const TicketBooking = () => {
         throw new Error("No invoice link returned. Please try again.");
       }
     } catch (err) {
-      console.error("❌ Payment Error:", JSON.stringify(err.response?.data || err.message, null, 2));
       setError(err.response?.data?.message || "Payment failed. Please try again.");
     } finally {
       setLoading(false);
@@ -104,9 +104,7 @@ const TicketBooking = () => {
           min="1"
           max="10"
           value={ticketCount}
-          onChange={(e) =>
-            setTicketCount(Math.max(1, Math.min(10, Number(e.target.value))))
-          }
+          onChange={(e) => setTicketCount(Math.max(1, Math.min(10, Number(e.target.value))))}
           className="border p-2 rounded w-24"
         />
       </div>

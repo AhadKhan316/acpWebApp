@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Initialize Supabase
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -34,11 +35,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const requiredFields = ['user_id', 'event_id', 'amount'];
-  const missingFields = requiredFields.filter(field => !req.body[field]);
-
-  if (missingFields.length > 0) {
-    return res.status(400).json({ error: 'Missing required fields', missingFields });
+  const required = ['user_id', 'event_id', 'amount'];
+  const missing = required.filter((f) => !req.body[f]);
+  if (missing.length > 0) {
+    return res.status(400).json({ error: 'Missing required fields', missing });
   }
 
   const {
@@ -52,54 +52,48 @@ export default async function handler(req, res) {
   } = req.body;
 
   try {
-    // Auth step
-    console.log("🔐 Authenticating with PayPro...");
+    // Step 1: Auth
     const authRes = await axios.post('https://api.paypro.com.pk/v2/ppro/auth', {
       clientid: CLIENT_ID,
       clientsecret: CLIENT_SECRET
     });
 
-    const token = authRes.data?.data?.token;
+    const token = authRes?.data?.data?.token;
     if (!token) throw new Error('PayPro Auth failed. Token not received.');
 
-    // Create invoice payload
+    // Step 2: Invoice creation
     const orderNumber = `INV-${Date.now()}`;
     const issueDate = formatDate();
-    const dueDate = formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // 1 day
+    const dueDate = formatDate(new Date(Date.now() + 86400000)); // +1 day
 
-    const invoicePayload = [
-      {
-        MerchantId: MERCHANT_ID
-      },
+    const payload = [
+      { MerchantId: MERCHANT_ID },
       {
         OrderNumber: orderNumber,
         OrderAmount: amount.toString(),
         OrderDueDate: dueDate,
-        OrderType: "Service",
+        OrderType: 'Service',
         IssueDate: issueDate,
-        OrderExpireAfterSeconds: "3600",
+        OrderExpireAfterSeconds: '3600',
         CustomerName: customerName,
         CustomerMobile: customerMobile,
         CustomerEmail: customerEmail,
-        CustomerAddress: customerAddress || "N/A"
+        CustomerAddress: customerAddress
       }
     ];
 
-    console.log("📦 Payload to PayPro:", invoicePayload);
-
     const invoiceRes = await axios.post(
       'https://api.paypro.com.pk/v2/ppro/co',
-      invoicePayload,
-      { headers: { token, 'Content-Type': 'application/json' } }
+      payload,
+      {
+        headers: { token }
+      }
     );
 
-    const invoiceUrl = invoiceRes?.data?.data?.[0]?.InvoiceLink;
-    if (!invoiceUrl) {
-      console.error("❌ No invoice link returned:", invoiceRes.data);
-      throw new Error("No invoice URL returned from PayPro.");
-    }
+    const invoiceUrl = invoiceRes.data?.data?.[0]?.InvoiceLink;
+    if (!invoiceUrl) throw new Error('No invoice link returned.');
 
-    // Save to Supabase
+    // Step 3: Save to Supabase
     const { data, error } = await supabase
       .from('ticket_orders')
       .insert([{
@@ -113,26 +107,21 @@ export default async function handler(req, res) {
       }])
       .select();
 
-    if (error) {
-      throw new Error(`Supabase error: ${error.message}`);
-    }
+    if (error) throw new Error(`Supabase error: ${error.message}`);
 
     return res.status(200).json({
       success: true,
       orderNumber,
       invoiceUrl,
-      supabaseId: data[0]?.id
+      supabaseId: data?.[0]?.id
     });
 
   } catch (err) {
-    console.error("❌ Order creation failed:", err.message);
-    if (err.response?.data) {
-      console.error("💥 PayPro API Error:", JSON.stringify(err.response.data, null, 2));
-    }
+    console.error('❌ Order error:', err.message);
     return res.status(500).json({
       error: 'Order creation failed',
       message: err.response?.status === 406
-        ? 'PayPro rejected the invoice request. Check payload and credentials.'
+        ? 'PayPro rejected the invoice request (406). Check all fields.'
         : err.message
     });
   }
